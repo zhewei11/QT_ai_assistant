@@ -1,0 +1,30 @@
+# ==========================================
+# AI 大腦層 (Python 3.11) 專屬套件
+# ==========================================
+
+# 基礎通訊與環境
+pyzmq
+orjson
+python-dotenv
+
+# LangChain & LangGraph 生態系
+langgraph
+langgraph-prebuilt
+langgraph-sdk
+langgraph-checkpoint-sqlite
+langsmith
+langchain-community
+langchain-core
+langchain-openai
+notebook
+langchain-tavily
+wikipedia
+trustcall
+langgraph-cli[inmem]
+
+# LLM 模型連接
+langchain-openai
+langchain-ollama
+
+# 工具與知識檢索 (依需求擴充)
+tavily-python  # 用於網頁搜尋

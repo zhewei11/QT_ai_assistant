@@ -1,0 +1,11 @@
+{
+  "dockerfile_lines": [],
+  "graphs": {
+    "qt_ai_brain": "./src/ai_assistant_core.py:app"
+  },
+  "env": "./config/.env",
+  "python_version": "3.11",
+  "dependencies": [
+    "."
+  ]
+}

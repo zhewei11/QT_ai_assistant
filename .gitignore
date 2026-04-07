@@ -1,0 +1,54 @@
+# 1. environment variables and secrets
+.env
+secret/
+keys/
+*.key
+credentials.json
+
+# 2. python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# 3. python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# 4. os cache
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 5. IDE and editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.ipynb_checkpoints/
+
+# 6. logs and runtime files
+*.log
+robot_actions.log
+logs/
+.langgraph_state/
+*.sqlite3       # 如果你未來用 langgraph-checkpoint-sqlite 會產生此檔
+
+# 7. ros development temporary files
+build/
+devel/
+install/
+log/
+*build*/
+*devel*/
+*install*/
+
