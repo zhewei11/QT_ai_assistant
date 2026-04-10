@@ -1,13 +1,13 @@
 # ==========================================
-# AI 大腦層 (Python 3.11) 專屬套件
+# AI (Python 3.11)
 # ==========================================
 
-# 基礎通訊與環境
+# communication bridge
 pyzmq
 orjson
 python-dotenv
 
-# LangChain & LangGraph 生態系
+# LangChain & LangGraph
 langgraph
 langgraph-prebuilt
 langgraph-sdk
@@ -22,9 +22,11 @@ wikipedia
 trustcall
 langgraph-cli[inmem]
 
-# LLM 模型連接
+# LLM connection
 langchain-openai
 langchain-ollama
 
-# 工具與知識檢索 (依需求擴充)
-tavily-python  # 用於網頁搜尋
+# tools
+# web search
+tavily-python
+ 
