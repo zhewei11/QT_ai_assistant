@@ -41,6 +41,8 @@ Thumbs.db
 robot_actions.log
 logs/
 .langgraph_state/
+.langgraph_api/
+ai/.langgraph_api/
 *.sqlite3       # 如果你未來用 langgraph-checkpoint-sqlite 會產生此檔
 
 # 7. ros development temporary files

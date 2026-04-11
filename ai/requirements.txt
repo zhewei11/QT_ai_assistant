@@ -20,7 +20,7 @@ notebook
 langchain-tavily
 wikipedia
 trustcall
-langgraph-cli[inmem]
+# langgraph-cli[inmem] # (Mac/Local testing only, comment out for robot/Linux to avoid build issues)
 
 # LLM connection
 langchain-openai
