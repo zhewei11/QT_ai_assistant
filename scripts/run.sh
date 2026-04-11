@@ -1,7 +1,8 @@
 #!/bin/bash
 # qt ai assistant
 
-WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the parent directory of this script as the workspace root
+WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "========================================="
 echo " QT AI Assistant pipeline..."
