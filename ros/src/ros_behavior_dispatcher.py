@@ -12,13 +12,14 @@ from std_msgs.msg import String
 
 # Implemented robust imports assuming qt_robot_interface is available in the workspace
 try:
-    from qt_robot_interface.srv import behavior_talk_text, speech_config, emotion_show, setting_setVolume
+    from qt_robot_interface.srv import behavior_talk_text, speech_config, emotion_show, setting_setVolume, gesture_play
 except ImportError:
     rospy.logwarn("qt_robot_interface not found. Mocking the proxy services for development.")
     behavior_talk_text = None
     speech_config = None
     emotion_show = None
     setting_setVolume = None
+    gesture_play = None
 
 class ROSBehaviorDispatcher:
     def __init__(self, zmq_port="tcp://*:5556"):
@@ -29,6 +30,7 @@ class ROSBehaviorDispatcher:
         self.speechConfig = rospy.ServiceProxy('/qt_robot/speech/config', speech_config) if speech_config else lambda l, p, s: rospy.loginfo(f"[MOCK] Lang: {l}")
         self.emotionShow = rospy.ServiceProxy('/qt_robot/emotion/show', emotion_show) if emotion_show else lambda e: rospy.loginfo(f"[MOCK] Emotion: {e}")
         self.settingVolume = rospy.ServiceProxy('/qt_robot/setting/setVolume', setting_setVolume) if setting_setVolume else lambda v: rospy.loginfo(f"[MOCK] Volume: {v}")
+        self.gesturePlay = rospy.ServiceProxy('/qt_robot/gesture/play', gesture_play) if gesture_play else lambda n, s: rospy.loginfo(f"[MOCK] Gesture: {n} speed: {s}")
 
         # Publisher to notify Riva of language changes
         self.lang_pub = rospy.Publisher('/qt_ai_assistant/language_config', String, queue_size=10)
@@ -80,6 +82,8 @@ class ROSBehaviorDispatcher:
             try:
                 if func_name == "emotionShow":
                     self.emotionShow(args.get("emotion", "QT/neutral"))
+                elif func_name == "gesturePlay":
+                    self.gesturePlay(args.get("name", ""), args.get("speed", 1.0))
                 elif func_name == "setLanguage":
                     # Args: {"lang_code": "en-US", "pitch": 100, "speed": 100}
                     lang_code = args.get("lang_code", "zh-CN")

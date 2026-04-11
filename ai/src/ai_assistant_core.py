@@ -28,6 +28,7 @@ if __name__ == "__main__":
     current_state = {
         "input_text": "",
         "chat_history": [],
+        "memory_summary": "",
         "route_decision": "",
         "tool_raw_xml": "",
         "refined_context": "",
@@ -44,7 +45,7 @@ if __name__ == "__main__":
                 continue
                 
             # 2. clear expired variables and send to brain
-            # note: keep chat_history, clear other states
+            # note: keep chat_history and memory_summary, clear other states
             current_state["input_text"] = text
             current_state["tool_raw_xml"] = ""
             current_state["refined_context"] = ""
@@ -56,18 +57,43 @@ if __name__ == "__main__":
             # execute state machine (state machine will print logs in order)
             final_state = app.invoke(current_state)
             
-            # update state memory (to keep chat history)
+            # update state memory (to keep chat history and summary)
             current_state["chat_history"] = final_state.get("chat_history", current_state["chat_history"])
+            current_state["memory_summary"] = final_state.get("memory_summary", current_state["memory_summary"])
             
             # 3. handle state machine decisions and forward to ROS
             response_text = final_state.get("final_response", "")
             
-            if response_text == "<PHYSICAL_ACTION_REQUEST>":
-                # here for simple demonstration, we directly convert all action requests to smile
-                bridge.send_action(action="function", func_name="emotionShow", func_args={"emotion": "QT/happy"})
-            elif response_text:
-                # normal talking
-                bridge.send_action(action="talk", text=response_text)
+            import re
+            import json
+            
+            # Find all <PHYSICAL_ACTION_REQUEST> blocks
+            pattern = r"<PHYSICAL_ACTION_REQUEST>(.*?)</PHYSICAL_ACTION_REQUEST>"
+            action_blocks = re.findall(pattern, response_text, re.DOTALL)
+            
+            # Strip the blocks from the text to get the spoken content
+            spoken_text = re.sub(pattern, "", response_text, flags=re.DOTALL).strip()
+            
+            # Process any action blocks
+            for json_str in action_blocks:
+                try:
+                    action_payload = json.loads(json_str)
+                    if isinstance(action_payload, dict):
+                        action_payload = [action_payload]
+                        
+                    for action_data in action_payload:
+                        action = action_data.get("action_type", "function")
+                        func_name = action_data.get("func_name", "")
+                        func_args = action_data.get("func_args", {})
+                        if func_name:
+                            logger.info(f"[Action Extracted] {func_name} | args: {func_args}")
+                            bridge.send_action(action=action, func_name=func_name, func_args=func_args)
+                except Exception as e:
+                    logger.error(f"Failed to parse action JSON: {e}")
+                    
+            # Talk the remaining clean text
+            if spoken_text:
+                bridge.send_action(action="talk", text=spoken_text)
                 
     except KeyboardInterrupt:
         logger.info("\nAI brain is shutting down...")

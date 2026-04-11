@@ -29,4 +29,7 @@ langchain-ollama
 # tools
 # web search
 tavily-python
- 
+
+# RAG
+faiss-cpu
+tiktoken
