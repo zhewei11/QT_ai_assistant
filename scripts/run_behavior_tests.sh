@@ -13,7 +13,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # 1. active ros virtual environment and run ros_behavior_dispatcher.py
 echo "[1] Starting ros_behavior_dispatcher.py in background..."
-python3 "$DIR/src/ros_behavior_dispatcher.py" &
+python3 "$DIR/../ros/src/ros_behavior_dispatcher.py" &
 DISPATCHER_PID=$!
 
 # wait for ros_behavior_dispatcher.py to build ZeroMQ port 5556
@@ -36,7 +36,7 @@ echo "========================================"
 echo " Launching Interactive Test Menu"
 echo "========================================"
 # directly run test_trigger.py in foreground
-python3 "$DIR/test/test_trigger.py"
+python3 "$DIR/../ros/test/test_trigger.py"
 
 # 3. when the interactive menu is closed (e.g., press 0 or Ctrl+C), automatically clean up background processes
 echo ""

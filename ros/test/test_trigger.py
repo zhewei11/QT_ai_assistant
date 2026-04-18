@@ -42,7 +42,7 @@ def interactive_menu():
                 send_payload(socket, "Emotion Show", {
                     "action": "function",
                     "function_name": "emotionShow",
-                    "function_args": {"emotion": "QT/happy"}
+                    "function_args": {"emotion": "QT/trhappy"}
                 })
             elif choice == "3":
                 send_payload(socket, "Set Language", {
@@ -61,7 +61,7 @@ def interactive_menu():
                     "action": "function",
                     "function_name": "showECG",
                     "function_args": {
-                        "script_path": "/Users/zhangzhewei/Documents/qtrobot/tutorials/demos/qt_ai_assistant/ecg/src/ecg_real_gui_pyqtgraph.py"
+                        "url": "http://localhost:8080/index.html"
                     }
                 })
             else:

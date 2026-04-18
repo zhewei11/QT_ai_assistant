@@ -12,13 +12,33 @@ from std_msgs.msg import String
 
 # Implemented robust imports assuming qt_robot_interface is available in the workspace
 try:
-    from qt_robot_interface.srv import behavior_talk_text, speech_config, emotion_show, setting_setVolume, gesture_play
-except ImportError:
-    rospy.logwarn("qt_robot_interface not found. Mocking the proxy services for development.")
+    from qt_robot_interface.srv import behavior_talk_text
+except ImportError as e:
+    rospy.logwarn(f"Mocking behavior_talk_text. Error: {e}")
     behavior_talk_text = None
+
+try:
+    from qt_robot_interface.srv import speech_config
+except ImportError as e:
+    rospy.logwarn(f"Mocking speech_config. Error: {e}")
     speech_config = None
+
+try:
+    from qt_robot_interface.srv import emotion_show
+except ImportError as e:
+    rospy.logwarn(f"Mocking emotion_show. Error: {e}")
     emotion_show = None
+
+try:
+    from qt_robot_interface.srv import setting_setVolume
+except ImportError as e:
+    rospy.logwarn(f"Mocking setting_setVolume. Error: {e}")
     setting_setVolume = None
+
+try:
+    from qt_gesture_controller.srv import gesture_play
+except ImportError as e:
+    rospy.logwarn(f"Mocking gesture_play. Error: {e}")
     gesture_play = None
 
 class ROSBehaviorDispatcher:
@@ -96,22 +116,16 @@ class ROSBehaviorDispatcher:
                     mapped_level = int(24 * math.log(level) - 10) if level > 0 else 0
                     self.settingVolume(mapped_level)
                 elif func_name == "showECG":
-                    import subprocess
-                    import os
+                    import webbrowser
                     
-                    if self.ecg_process is not None and self.ecg_process.poll() is None:
-                        rospy.logwarn("ECG UI is already running! Ignoring duplicate request to save memory.")
-                        return 
-                        
-                    rospy.loginfo("Launching ECG UI on physical display...")
-                    env = os.environ.copy()
-                    env["DISPLAY"] = ":0"
+                    # Log instruction
+                    rospy.loginfo("Web-Based ECG Requested.")
+                    rospy.loginfo("To view this on the QTrobot tablet, configure the tablet to navigate to the Python Web Server's IP address (e.g., http://<body_ip>:8080/index.html).")
                     
-                    # TODO: renew the path of the ecg script
-                    ecg_script_path = args.get("script_path", "/home/qtrobot/ecg/ecg_real_gui_pyqtgraph.py")
-                    
-                    # store the process to monitor
-                    self.ecg_process = subprocess.Popen(["python3", ecg_script_path], env=env)
+                    # For local testing on the Mac/Ubuntu Desktop, we just open the browser!
+                    test_url = args.get("url", "http://localhost:8080/index.html")
+                    rospy.loginfo(f"Opening local test browser to {test_url} ...")
+                    webbrowser.open(test_url)
                 else:
                     rospy.logwarn(f"Unknown function requested: {func_name}")
             except Exception as e:
