@@ -1,0 +1,18 @@
+# ==========================================
+# ECG Live Web Dashboard Requirements
+# ==========================================
+# Core DSP and Array Math
+numpy
+scipy
+# CSV Data fallbacks
+pandas
+# Hardware Serial Reading (SPI/ESP32)
+pyserial
+# Asynchronous Web Streaming
+websockets
+# ------------------------------------------
+# Legacy Desktop Application Requirements
+# (Optional, only needed for local PyQt testing)
+# ------------------------------------------
+pyqtgraph
+PyQt5
