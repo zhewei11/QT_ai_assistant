@@ -54,3 +54,6 @@ log/
 *devel*/
 *install*/
 
+
+# 8. Third-party clinical DSP module (not tracked here, clone separately — see README § 4)
+ecg/src/SDM_DEMO_GUI/

@@ -10,6 +10,7 @@ pandas
 pyserial
 # Asynchronous Web Streaming
 websockets
+matplotlib
 # ------------------------------------------
 # Legacy Desktop Application Requirements
 # (Optional, only needed for local PyQt testing)

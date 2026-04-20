@@ -8,126 +8,102 @@
     <style>
         * {
             box-sizing: border-box;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100vh;
-            background-color: #0b0b0d; /* Extremely deep dark gray */
+            background-color: #0D0D0D;
             color: #ffffff;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* --- Top Layout Grid --- */
         .top-bar {
             display: flex;
-            height: 160px;
-            padding: 15px;
-            gap: 15px;
+            height: 180px;
+            padding: 20px;
+            gap: 20px;
             flex-shrink: 0;
         }
 
         .card {
-            background-color: #1a1a1c;
-            border: 1px solid #2a2a2d;
+            background-color: #1A1A1A;
+            border: 1px solid #333333;
             border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-        }   
+            padding: 15px 20px;
+        }
 
         .hr-card {
-            flex: 0 0 250px;
+            flex: 1;
         }
 
         .ar-card {
             flex: 1;
         }
 
-        .status-card {
-            flex: 0 0 300px;
-            text-align: right;
-            align-items: flex-end;
-            justify-content: flex-end;
-            padding: 15px;
-            border: 1px solid #000;
-            background-color: #050505;
+        .hrv-card {
+            flex: 1.2;
         }
 
-        /* --- Typography & Elements inside Cards --- */
         .card-header {
-            font-size: 1rem;
-            color: #aaaaaa;
+            font-size: 14px;
+            color: #888888;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+            text-align: center;
         }
 
         .card-value {
-            font-size: 3.5rem;
+            font-size: 36px;
             font-weight: bold;
-            color: #00ff66;
-            line-height: 1;
-            text-shadow: 0px 0px 10px rgba(0, 255, 102, 0.4);
-        }
-
-        .ar-card .card-value {
-            font-size: 2.5rem;
-        }
-
-        .progress-bar-wrap {
-            display: flex;
-            width: 80%;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .pb-segment {
-            flex: 1;
-            height: 35px;
-            background-color: #2a2a2d;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-size: 0.7rem;
-            color: #666;
             line-height: 1.2;
+            text-align: center;
         }
 
-        .pb-active {
-            background-color: #28a745;
-            color: #fff;
-            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        #bpmDisplay {
+            color: #00E5FF;
         }
 
-        .ar-status {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #28a745;
+        #arrhythmiaDisplay {
+            color: #777777;
         }
 
-        .sys-msg {
-            color: #00ff66;
-            font-size: 0.85rem;
+        .hrv-metric {
+            color: #00FF41;
+            font-size: 18px;
+            font-weight: bold;
         }
 
-        /* --- Plot Area --- */
+        .status-row {
+            padding: 0 20px 10px 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        #statusLabel {
+            font-size: 14px;
+            color: #666666;
+        }
+
         .plot-container {
             flex: 1;
-            margin: 0 15px;
-            border: 1px solid #333;
-            background-color: #111111;
+            margin: 0 20px;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            background-color: #0D0D0D;
             position: relative;
             overflow: hidden;
-            display: flex;
         }
 
         canvas {
@@ -136,86 +112,81 @@
             display: block;
         }
 
-        /* --- Bottom Layout --- */
         .bottom-bar {
-            height: 80px;
-            padding: 15px;
+            padding: 20px;
             display: flex;
             gap: 15px;
             flex-shrink: 0;
-            justify-content: flex-end;
-            margin-top: auto;
         }
 
         .btn {
+            height: 50px;
             border: none;
-            border-radius: 5px;
-            font-size: 1.1rem;
+            border-radius: 6px;
+            font-size: 16px;
             font-weight: bold;
             color: white;
             cursor: pointer;
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
         }
 
-        .btn-red {
-            background-color: #d32f2f;
+        #btnStop {
+            background-color: #0066CC;
+            flex: 3;
+        }
+
+        #btnStop:hover {
+            background-color: #0077EE;
+        }
+
+        #btnStop.is-stopped {
+            background-color: #CC0000;
+        }
+
+        #btnReset {
+            background-color: #333333;
+            color: #AAAAAA;
             flex: 1;
-            box-shadow: 0 4px 6px rgba(211, 47, 47, 0.4);
-        }
-        
-        .btn-red:active { background-color: #b71c1c; }
-
-        .btn-green {
-            background-color: #2e7d32;
-            flex: 0 0 250px;
-            box-shadow: 0 4px 6px rgba(46, 125, 50, 0.4);
         }
 
-        .btn-green:active { background-color: #1b5e20; }
-
+        #btnReset.is-ready {
+            background-color: #2E8B57;
+            color: white;
+        }
     </style>
 </head>
 
 <body>
-
     <div class="top-bar">
         <div class="card hr-card">
             <div class="card-header">HEART RATE (BPM)</div>
             <div class="card-value" id="bpmDisplay">--</div>
         </div>
-        
         <div class="card ar-card">
-            <div class="card-header" style="display: flex; align-items: baseline; gap: 15px;">
-                <span>ARRHYTHMIA RATIO (60s)</span>
-                <span style="font-size: 0.85rem; color: #28a745; text-transform: none; font-weight: 500;">Classification: Normal (Low Risk)</span>
-            </div>
-            <div class="card-value">0.0%</div>
-            <div class="progress-bar-wrap">
-                <div class="pb-segment pb-active">
-                    <b>< 25%</b>
-                    <span>Normal</span>
-                </div>
-                <div class="pb-segment">
-                    <b>25-50%</b>
-                    <span>Warning</span>
-                </div>
-                <div class="pb-segment">
-                    <b>> 50%</b>
-                    <span>Danger</span>
-                </div>
-            </div>
+            <div class="card-header">ARRHYTHMIA (60s)</div>
+            <div class="card-value" id="arrhythmiaDisplay">Ready</div>
+        </div>
+        <div class="card hrv-card">
+            <div class="card-header">HRV METRICS</div>
+            <div id="rmssdDisplay" class="hrv-metric">RMSSD: -- ms</div>
+            <div id="pnn50Display" class="hrv-metric">pNN50: -- %</div>
         </div>
     </div>
-
+    <div class="status-row">
+        <div id="statusLabel">System Status: Idle | Ready to start 60s clinical analysis.</div>
+    </div>
     <div class="plot-container">
-        <!-- Overlay canvas system for extreme performance (Background grid vs Foreground line) -->
         <canvas id="bgCanvas" style="position:absolute; z-index: 1;"></canvas>
         <canvas id="ecgCanvas" style="position:absolute; z-index: 2;"></canvas>
     </div>
-
     <div class="bottom-bar">
-        <button id="btnStop" class="btn btn-red">■ STOP MONITORING</button>
-        <button id="btnReset" class="btn btn-green">↺ RETEST (Reset 60s)</button>
+        <button id="btnStop" class="btn">▶ START 60s ANALYSIS</button>
+        <button id="btnReset" class="btn">↺ RETEST</button>
     </div>
 
     <script>
@@ -223,206 +194,267 @@
         const bgCtx = bgCanvas.getContext('2d', { alpha: false });
         const canvas = document.getElementById('ecgCanvas');
         const ctx = canvas.getContext('2d');
-        const bpmDisplay = document.getElementById('bpmDisplay');
 
-        // Target settings
-        const FS = 240; // 240Hz matching Python Decimation
-        const WINDOW_SECONDS = 4.0; // Draw 4.0 seconds of history (slows visual scrolling speed by half)
-        const MAX_POINTS = FS * WINDOW_SECONDS; // 960 points
+        const FS = 187.5;
+        const WINDOW_SECONDS = 2.0;
+        const MAX_POINTS = Math.floor(FS * WINDOW_SECONDS); // 375 samples
 
-        let dataBuffer = new Array(MAX_POINTS).fill(0); // rolling array
-        let displayScale = 0.08; // Y-range constraint match to your image (0.08 to -0.06)
-        let isMonitoring = true;
+        let dataBuffer = new Float64Array(MAX_POINTS); // Ring buffer of displayed samples
+        let isMonitoring = false;
+        let analysisDone = false;
+        let monitoringStartTime = 0;
 
-        /* ================= Button Controls ================= */
+        // ── Peak Detection State ──────────────────────────────────────
+        // We keep a growing list of ABSOLUTE sample indices where R-peaks were found.
+        // This avoids any relative-index math between server and client.
+        let totalSamplesReceived = 0;
+        let absolutePeaks = []; // global absolute indices of confirmed R-peaks
+
+        // ── Buttons ───────────────────────────────────────────────────
         const btnStop = document.getElementById('btnStop');
         const btnReset = document.getElementById('btnReset');
+        const bpmDisplay = document.getElementById('bpmDisplay');
+        const arrhythmiaDisplay = document.getElementById('arrhythmiaDisplay');
+        const statusLabel = document.getElementById('statusLabel');
 
         btnStop.addEventListener('click', () => {
             isMonitoring = !isMonitoring;
+            updateButtons();
             if (isMonitoring) {
-                btnStop.innerHTML = "■ STOP MONITORING";
-                btnStop.className = "btn btn-red";
+                monitoringStartTime = Date.now();
+                statusLabel.innerText = "System Status: Monitoring...";
+                analysisDone = false;
             } else {
-                btnStop.innerHTML = "▶ RESUME MONITORING";
-                btnStop.className = "btn btn-green";
+                statusLabel.innerText = "System Status: Paused.";
             }
         });
 
         btnReset.addEventListener('click', () => {
             dataBuffer.fill(0);
+            absolutePeaks = [];
+            totalSamplesReceived = 0;
             bpmDisplay.innerText = "--";
-            // Quick visual flashing feedback
-            btnReset.style.transform = "scale(0.95)";
-            setTimeout(() => btnReset.style.transform = "scale(1)", 100);
+            arrhythmiaDisplay.innerText = "Ready";
+            arrhythmiaDisplay.style.color = "#777777";
+            document.getElementById('rmssdDisplay').innerText = "RMSSD: -- ms";
+            document.getElementById('pnn50Display').innerText = "pNN50: -- %";
+            analysisDone = false;
+            monitoringStartTime = Date.now();
+            updateButtons();
         });
 
-        /* ================= WebSocket Connection ================= */
-        const wsUrl = "ws://" + window.location.hostname + ":8000";
-        const ws = new WebSocket(wsUrl);
+        function updateButtons() {
+            if (isMonitoring) {
+                btnStop.innerHTML = "⏸ STOP MONITORING";
+                btnStop.classList.add('is-stopped');
+            } else {
+                btnStop.innerHTML = "▶ START 60s ANALYSIS";
+                btnStop.classList.remove('is-stopped');
+            }
+            btnReset.classList.toggle('is-ready', analysisDone);
+        }
 
-        ws.onopen = () => {
-            console.log("WebSocket connected.");
-        };
+        // ── R-Peak Detection in JS (Pan-Tompkins) ─────────────────────
+        // Runs on the entire dataBuffer to find absolute global peaks.
+        function detectRPeaks(buffer, totalReceived) {
+            const n = buffer.length;
+            if (n < FS) return; // Need at least 1s of data
+
+            // 1. Differentiate
+            const diff = new Float64Array(n);
+            for (let i = 1; i < n; i++) diff[i] = buffer[i] - buffer[i - 1];
+
+            // 2. Square
+            const sq = new Float64Array(n);
+            for (let i = 0; i < n; i++) sq[i] = diff[i] * diff[i];
+
+            // 3. MWA (80ms = ~15 samples at 187.5Hz)
+            const winSize = Math.max(1, Math.round(FS * 0.08));
+            const mwa = new Float64Array(n);
+            let sum = 0;
+            for (let i = 0; i < n; i++) {
+                sum += sq[i];
+                if (i >= winSize) sum -= sq[i - winSize];
+                mwa[i] = sum / winSize;
+            }
+
+            // 4. Normalize
+            let maxVal = 0;
+            for (let i = 0; i < n; i++) if (mwa[i] > maxVal) maxVal = mwa[i];
+            if (maxVal <= 0) return;
+            for (let i = 0; i < n; i++) mwa[i] /= maxVal;
+
+            // 5. Find peaks (height > 0.35, distance > 300ms = ~56 samples)
+            const minDist = Math.round(FS * 0.3);
+            const threshold = 0.35;
+            const candidates = [];
+            for (let i = 1; i < n - 1; i++) {
+                if (mwa[i] > threshold && mwa[i] >= mwa[i - 1] && mwa[i] >= mwa[i + 1]) {
+                    candidates.push(i);
+                }
+            }
+
+            // Enforce min distance
+            const filtered = [];
+            for (const c of candidates) {
+                if (filtered.length === 0 || c - filtered[filtered.length - 1] >= minDist) {
+                    filtered.push(c);
+                }
+            }
+
+            // 6. Refine to actual signal peak (50ms window)
+            const searchWin = Math.round(FS * 0.05);
+            const newPeaks = [];
+            for (const p of filtered) {
+                const s = Math.max(0, p - searchWin);
+                const e = Math.min(n, p + searchWin);
+                let maxY = -Infinity, maxIdx = s;
+                for (let k = s; k < e; k++) {
+                    if (buffer[k] > maxY) { maxY = buffer[k]; maxIdx = k; }
+                }
+                // Convert local buffer index to absolute sample index
+                // buffer represents samples from (totalReceived - n) to (totalReceived - 1)
+                const absIdx = (totalReceived - n) + maxIdx;
+                newPeaks.push(absIdx);
+            }
+
+            // 7. Merge with existing absolutePeaks (refractory: 250ms)
+            const refractSamples = Math.round(FS * 0.25);
+            for (const abs of newPeaks) {
+                if (absolutePeaks.length === 0 || abs - absolutePeaks[absolutePeaks.length - 1] > refractSamples) {
+                    absolutePeaks.push(abs);
+                }
+            }
+
+            // Keep only recent peaks to bound memory
+            const keepSince = totalReceived - Math.round(FS * 60);
+            absolutePeaks = absolutePeaks.filter(p => p >= keepSince);
+        }
+
+        // ── Client-side Metrics from absolute peaks ───────────────────
+        function computeMetrics(recentPeaks, fs) {
+            if (recentPeaks.length < 2) return null;
+            const rr = [];
+            for (let i = 1; i < recentPeaks.length; i++) {
+                rr.push((recentPeaks[i] - recentPeaks[i - 1]) / fs * 1000.0);
+            }
+            const meanRR = rr.reduce((a, b) => a + b, 0) / rr.length;
+            const bpm = Math.round(60000 / meanRR);
+            const diffs = rr.slice(1).map((r, i) => r - rr[i]);
+            const rmssd = Math.sqrt(diffs.reduce((a, b) => a + b * b, 0) / diffs.length);
+            const nn50 = diffs.filter(d => Math.abs(d) > 50).length;
+            const pnn50 = (nn50 / diffs.length) * 100;
+            const sdRR = Math.sqrt(rr.reduce((a, b) => a + (b - meanRR) ** 2, 0) / rr.length);
+            const arrRatio = (sdRR / meanRR) * 100;
+            return { bpm, rmssd: rmssd.toFixed(1), pnn50: pnn50.toFixed(1), arrRatio: arrRatio.toFixed(1) };
+        }
+
+        // ── WebSocket ─────────────────────────────────────────────────
+        const ws = new WebSocket("ws://" + window.location.hostname + ":8000");
 
         ws.onmessage = (event) => {
-            if (!isMonitoring) return; // Freeze visualization immediately if stopped
-            
+            if (!isMonitoring) return;
+
             const msg = JSON.parse(event.data);
-            if (msg.batch) {
-                // Shift data array left, push new elements to the right (like a treadmill)
-                for (let i = 0; i < msg.batch.length; i++) {
-                    dataBuffer.shift();
-                    dataBuffer.push(msg.batch[i]);
+            if (!msg.batch) return;
+
+            const batch = msg.batch;
+            const n = batch.length;
+
+            // Append to ring buffer (shift left, push right)
+            for (let i = 0; i < n; i++) {
+                // Shift
+                dataBuffer.copyWithin(0, 1);
+                dataBuffer[MAX_POINTS - 1] = batch[i];
+            }
+            totalSamplesReceived += n;
+
+            // Detect peaks on the full buffer
+            detectRPeaks(dataBuffer, totalSamplesReceived);
+
+            // Metrics
+            const metrics = computeMetrics(absolutePeaks, FS);
+            if (metrics) bpmDisplay.innerText = metrics.bpm;
+
+            // Arrhythmia countdown
+            const elapsed = (Date.now() - monitoringStartTime) / 1000;
+            if (!analysisDone) {
+                if (elapsed < 60) {
+                    arrhythmiaDisplay.innerText = "Wait: " + Math.ceil(60 - elapsed) + "s";
+                    arrhythmiaDisplay.style.color = "#777777";
+                } else {
+                    analysisDone = true;
+                    updateButtons();
+                    if (metrics) {
+                        const r = parseFloat(metrics.arrRatio);
+                        arrhythmiaDisplay.innerText = r.toFixed(1) + "%";
+                        arrhythmiaDisplay.style.color = r < 25 ? "#28a745" : r < 50 ? "#FFB300" : "#FF3333";
+                    }
                 }
             }
-            if (msg.bpm !== undefined) {
-                bpmDisplay.innerText = msg.bpm;
+
+            if (metrics) {
+                document.getElementById('rmssdDisplay').innerText = `RMSSD: ${metrics.rmssd} ms`;
+                document.getElementById('pnn50Display').innerText = `pNN50: ${metrics.pnn50} %`;
             }
         };
 
-        ws.onclose = () => {
-            console.log("WebSocket disconnected.");
-        };
-
-        /* ================= Render & Layout Logic ================= */
+        // ── Render ────────────────────────────────────────────────────
         function resize() {
-            const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            bgCanvas.width = canvas.width;
-            bgCanvas.height = canvas.height;
-            
-            drawStaticGrid();
+            const c = canvas.parentElement;
+            canvas.width = c.clientWidth; canvas.height = c.clientHeight;
+            bgCanvas.width = canvas.width; bgCanvas.height = canvas.height;
+            drawGrid();
         }
         window.addEventListener('resize', resize);
-        
-        function drawStaticGrid() {
+
+        function drawGrid() {
             bgCtx.fillStyle = '#111111';
             bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-            
-            bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            bgCtx.strokeStyle = 'rgba(255,255,255,0.05)';
             bgCtx.lineWidth = 1;
-            
-            // Minor grid lines (every 20x20 pixels)
-            bgCtx.beginPath();
-            for(let x = 0; x < bgCanvas.width; x += 15) {
-                bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height);
-            }
-            for(let y = 0; y < bgCanvas.height; y += 15) {
-                bgCtx.moveTo(0, y); bgCtx.lineTo(bgCanvas.width, y);
-            }
-            bgCtx.stroke();
-
-            // Major Grid & Labels
-            bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            bgCtx.fillStyle = '#666';
-            bgCtx.font = '10px Roboto, sans-serif';
-            bgCtx.textBaseline = 'middle';
-            
-            // X-Axis (Time)
-            const numXDivisions = 10;
-            const xStep = bgCanvas.width / numXDivisions;
-            for(let i=0; i<=numXDivisions; i++) {
-                let x = i * xStep;
-                bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height); bgCtx.stroke();
-                
-                // Labels from -2.0 to 0.0
-                if (i > 0) {
-                    let timeLabel = (-WINDOW_SECONDS + (i * (WINDOW_SECONDS/numXDivisions))).toFixed(1);
-                    if (i === numXDivisions) timeLabel = "0";
-                    bgCtx.textAlign = 'center';
-                    bgCtx.fillText(timeLabel, x, bgCanvas.height - 10);
-                }
-            }
-
-            // Y-Axis (Amplitude)
-            const yRangeTop = 0.08;
-            const yRangeBot = -0.06;
-            const yTotal = yRangeTop - yRangeBot; // 0.14
-            
-            const numYDivisions = 7;
-            const yStep = bgCanvas.height / numYDivisions;
-            bgCtx.textAlign = 'right';
-            
-            for(let i=0; i<=numYDivisions; i++) {
-                let y = i * yStep;
-                bgCtx.beginPath(); bgCtx.moveTo(0, y); bgCtx.lineTo(bgCanvas.width, y); bgCtx.stroke();
-                
-                let val = (yRangeTop - (i * (yTotal/numYDivisions))).toFixed(2);
-                bgCtx.fillText(val, 30, y === 0 ? 10 : y);
-            }
+            for (let x = 0; x < bgCanvas.width; x += 15) { bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height); bgCtx.stroke(); }
+            for (let y = 0; y < bgCanvas.height; y += 15) { bgCtx.beginPath(); bgCtx.moveTo(0, y); bgCtx.lineTo(bgCanvas.width, y); bgCtx.stroke(); }
+            bgCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+            const xStep = bgCanvas.width / 10;
+            for (let i = 0; i <= 10; i++) { const x = i * xStep; bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height); bgCtx.stroke(); }
         }
 
         function drawECG() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Settings mapping
-            const yRangeTop = 0.08;
-            const yRangeBot = -0.06;
-            const yTotal = yRangeTop - yRangeBot;
-            
-            // We want to map `idx=0` to `x=0`, and `idx=MAX_POINTS` to `canvas.width`
+            const yTop = 0.08, yBot = -0.06, yTotal = yTop - yBot;
             const xStride = canvas.width / (MAX_POINTS - 1);
-            
+
+            // Draw waveform
             ctx.beginPath();
-            let peakIndices = [];
-            
-            // Plot the line
             for (let i = 0; i < MAX_POINTS; i++) {
-                let val = dataBuffer[i];
-                
-                // Track visual peaks strictly in the frontend display for red dots
-                // Simple condition: highest point in a small local window
-                if(i > 10 && i < MAX_POINTS - 10) {
-                    if (val > 0.015) { // Ensure it's a prominent R peak
-                        let isLocalMax = true;
-                        for(let j = -8; j <= 8; j++) {
-                            if (dataBuffer[i+j] > val) { isLocalMax = false; break; }
-                        }
-                        if (isLocalMax) peakIndices.push(i);
-                    }
-                }
-
-                // Map value to Y coordinates
-                // yRatio = 0 at top (0.08), 1 at bottom (-0.06)
-                let yRatio = (yRangeTop - val) / yTotal;
-                let yPos = yRatio * canvas.height;
-                let xPos = i * xStride;
-
-                if (i === 0) {
-                    ctx.moveTo(xPos, yPos);
-                } else {
-                    ctx.lineTo(xPos, yPos);
-                }
+                const y = ((yTop - dataBuffer[i]) / yTotal) * canvas.height;
+                if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * xStride, y);
             }
-            
-            // Stroke line
-            ctx.strokeStyle = '#4db6ac'; // Subtle clinical green
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            ctx.strokeStyle = '#00FF41'; ctx.lineWidth = 1.5; ctx.stroke();
 
-            // Draw Red Peaks over the rendered line
-            ctx.fillStyle = '#ff3333';
-            for (let i = 0; i < peakIndices.length; i++) {
-                let idx = peakIndices[i];
-                let val = dataBuffer[idx];
-                let yRatio = (yRangeTop - val) / yTotal;
-                let yPos = yRatio * canvas.height;
-                let xPos = idx * xStride;
-
+            // Draw R-peaks
+            // Convert absolute indices to local buffer indices:
+            // local_idx = MAX_POINTS - 1 - (totalSamplesReceived - 1 - absIdx)
+            //           = absIdx - (totalSamplesReceived - MAX_POINTS)
+            const bufferStartAbs = totalSamplesReceived - MAX_POINTS;
+            ctx.fillStyle = '#FF3333';
+            for (const absIdx of absolutePeaks) {
+                const localIdx = absIdx - bufferStartAbs;
+                if (localIdx < 0 || localIdx >= MAX_POINTS) continue;
+                const xPos = localIdx * xStride;
+                const yPos = ((yTop - dataBuffer[localIdx]) / yTotal) * canvas.height;
                 ctx.beginPath();
-                ctx.arc(xPos, yPos, 4, 0, Math.PI * 2);
+                ctx.arc(xPos, yPos, 5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
             requestAnimationFrame(drawECG);
         }
 
-        // Boot
         resize();
         requestAnimationFrame(drawECG);
-
     </script>
 </body>
+
 </html>

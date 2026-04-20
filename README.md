@@ -76,3 +76,25 @@ Execute the primary orchestration sequence:
 
 ### 3.3 Dynamic Knowledge Ingestion Paradigm
 The system integrates an auto-indexing FAISS mechanism designed for **hot-state initialization**. Upon executing `./scripts/run.sh`, the framework performs comprehensive traversal of `ai/document/**/*.txt`, executing robust tokenization and high-dimensional vector embeddings straight into volatile memory. This eliminates the necessity for manual retraining or explicit database migrations when updating the domain-specific corpus.
+
+---
+
+## 4. Third-Party Clinical DSP Module
+
+The ECG signal processing pipeline depends on an external clinical DSP library:
+
+### `ecg/src/SDM_DEMO_GUI/`
+
+| Item | Description |
+|---|---|
+| **Source** | [https://github.com/YeJohn0417/SDM_DEMO_GUI/tree/main](https://github.com/YeJohn0417/SDM_DEMO_GUI/tree/main) |
+| **Contents** | Real-time ECG filtering (`filter.py`), fixed-point quantization (`quant.py`), SPI hardware streaming (`spi_receive.py`), and arrhythmia analysis GUI |
+| **Usage** | Provides the clinical-grade Pan-Tompkins DSP chain used by `ecg/src/web/ecg_server.py` |
+| **Tracking** | **Excluded from this repository** (listed in `.gitignore`) — clone separately as shown below |
+
+### Setup
+
+```bash
+# Clone the clinical DSP module into the expected location
+git clone https://github.com/YeJohn0417/SDM_DEMO_GUI.git ecg/src/SDM_DEMO_GUI
+```
