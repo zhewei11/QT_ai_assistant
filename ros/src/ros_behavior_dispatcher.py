@@ -97,6 +97,7 @@ class ROSBehaviorDispatcher:
             if text:
                 self.mic_pause_pub.publish(True)
                 self.talkText(text)
+                rospy.sleep(1.0)
                 self.mic_pause_pub.publish(False)
                 
         elif action == "function":
@@ -108,12 +109,16 @@ class ROSBehaviorDispatcher:
                 elif func_name == "gesturePlay":
                     self.gesturePlay(args.get("name", ""), args.get("speed", 1.0))
                 elif func_name == "setLanguage":
-                    # Args: {"lang_code": "en-US", "pitch": 100, "speed": 100}
-                    lang_code = args.get("lang_code", "zh-CN")
-                    self.speechConfig(lang_code, args.get("pitch", 100), args.get("speed", 100))
+                    # Args: {"lang_code": "en_US", "pitch": 100, "speed": 100}
+                    tts_lang = args.get("lang_code", "zh_MA")
+                    self.speechConfig(tts_lang, args.get("pitch", 100), args.get("speed", 100))
+                    
+                    # Map proprietary TTS language code to standard Riva ASR BCP-47 format
+                    asr_lang = "zh-CN" if "zh" in tts_lang else "en-US"
+                    
                     # switch ASR language
-                    self.lang_pub.publish(lang_code)
-                    rospy.loginfo(f" Successfully updated TTS and notified Riva ASR to use language: {lang_code}")
+                    self.lang_pub.publish(asr_lang)
+                    rospy.loginfo(f" Successfully updated TTS to {tts_lang} and Riva ASR to {asr_lang}")
                 elif func_name == "setVolume":
                     level = args.get("level", 50)
                     mapped_level = int(24 * math.log(level) - 10) if level > 0 else 0

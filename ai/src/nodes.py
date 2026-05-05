@@ -72,7 +72,7 @@ def system_control_node(state: AgentState):
     {"action_type": "function", "func_name": "...", "func_args": {"...": "..."}}
     
     Available system commands:
-    1. Set Language: func_name="setLanguage", func_args={"lang_code": "en-US" | "zh-CN"}
+    1. Set Language: func_name="setLanguage", func_args={"lang_code": "en_US" | "zh_MA"}
     2. Set Volume: func_name="setVolume", func_args={"level": 50}
     
     If uncertain, default to setting volume to 50.
@@ -91,7 +91,7 @@ def system_control_node(state: AgentState):
         new_lang = state.get("language", "zh-TW")
         if decision.get("func_name") == "setLanguage":
             lang_code = decision.get("func_args", {}).get("lang_code")
-            if lang_code == "en-US":
+            if "en" in str(lang_code):
                 new_lang = "en-US"
             elif "zh" in str(lang_code):
                 new_lang = "zh-TW"
