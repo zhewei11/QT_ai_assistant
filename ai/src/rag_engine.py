@@ -1,58 +1,243 @@
+"""
+RAG Engine
+==========
+Primary knowledge retrieval layer with two sources:
+  1. Local FAISS vector store — supports both .txt and structured .xml files
+     (.xml files from ai/document/ are parsed by <section>, preserving article
+     metadata as LangChain Document.metadata for richer context)
+  2. MedlinePlus Web Service (authoritative health-education content, free, no API key)
+
+Retrieval strategy:
+  - Always query FAISS first.
+  - If FAISS returns fewer than MIN_LOCAL_CHUNKS, supplement with MedlinePlus.
+"""
+
 import os
+import xml.etree.ElementTree as ET
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from config import logger
+from medlineplus_rag import search_medlineplus, format_for_rag
 
+
+
+# ---------------------------------------------------------------------------
+# XML Knowledge File Parser
+# ---------------------------------------------------------------------------
+def _load_xml_knowledge(xml_path: str) -> list[Document]:
+    """
+    Parse a structured XML knowledge file and return one LangChain Document
+    per <section>. Article-level metadata (title, category, source, url) is
+    attached so the LLM can cite the source in its reply.
+
+    Expected XML structure:
+        <knowledge_base>
+          <metadata>
+            <source>...</source>
+            <url>...</url>
+          </metadata>
+          <article id="...">
+            <title>...</title>
+            <category>...</category>
+            <keywords>...</keywords>
+            <section name="...">content text</section>
+            ...
+          </article>
+          ...
+        </knowledge_base>
+    """
+    docs: list[Document] = []
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+    except ET.ParseError as e:
+        logger.error(f"[RAG] XML parse error in {xml_path}: {e}")
+        return docs
+
+    # Global metadata from <knowledge_base><metadata>
+    kb_meta = root.find("metadata")
+    global_source = ""
+    global_url = ""
+    if kb_meta is not None:
+        global_source = (kb_meta.findtext("source") or "").strip()
+        global_url    = (kb_meta.findtext("url") or "").strip()
+
+    for article in root.findall("article"):
+        article_id  = article.get("id", "")
+        title       = (article.findtext("title")    or "").strip()
+        category    = (article.findtext("category") or "").strip()
+        keywords    = (article.findtext("keywords") or "").strip()
+
+        for section in article.findall("section"):
+            section_name = section.get("name", "內容")
+            raw_text     = (section.text or "").strip()
+            if not raw_text:
+                continue
+
+            # Build the text chunk with context header so the LLM can
+            # understand what it's reading even without surrounding context.
+            chunk_text = (
+                f"【來源】{global_source}\n"
+                f"【文章】{title}\n"
+                f"【章節】{section_name}\n"
+                f"【類別】{category}\n\n"
+                f"{raw_text}"
+            )
+
+            docs.append(Document(
+                page_content=chunk_text,
+                metadata={
+                    "source_name": global_source,
+                    "source_url":  global_url,
+                    "article_id":  article_id,
+                    "title":       title,
+                    "category":    category,
+                    "keywords":    keywords,
+                    "section":     section_name,
+                    "file":        os.path.basename(xml_path),
+                }
+            ))
+
+    logger.info(
+        f"[RAG] Parsed {len(docs)} sections from {os.path.basename(xml_path)}"
+    )
+    return docs
+
+
+# ---------------------------------------------------------------------------
+# RAG Engine
+# ---------------------------------------------------------------------------
 class RAGEngine:
-    def __init__(self, document_dir="document"):
-        self.document_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), document_dir)
-        self.vector_store = None
+    def __init__(self, document_dir: str = "document"):
+        self.document_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            document_dir,
+        )
+        self.vector_store: FAISS | None = None
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
         self._initialize_knowledge_base()
 
+    # ------------------------------------------------------------------
+    # Initialization
+    # ------------------------------------------------------------------
     def _initialize_knowledge_base(self):
-        logger.info(f"Checking RAG documents in {self.document_dir}...")
-        
-        # Ensure directory exists
+        logger.info(f"[RAG] Loading knowledge base from: {self.document_dir}")
+
         if not os.path.exists(self.document_dir):
             os.makedirs(self.document_dir)
-            logger.warning(f"Directory {self.document_dir} did not exist. Created empty directory.")
+            logger.warning("[RAG] document/ directory created (empty). RAG disabled until files are added.")
             return
 
-        # Load TXT files
-        loader = DirectoryLoader(self.document_dir, glob="**/*.txt", loader_cls=TextLoader)
-        docs = loader.load()
-        
-        if not docs:
-            logger.warning(f"No .txt documents found in {self.document_dir}. RAG is disabled until files are added.")
-            return
-            
-        logger.info(f"Loaded {len(docs)} documents. Chunking and indexing...")
-        
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=150,
-            length_function=len
+        all_docs: list[Document] = []
+
+        # 1) Load plain .txt files via LangChain DirectoryLoader
+        txt_loader = DirectoryLoader(
+            self.document_dir, glob="**/*.txt", loader_cls=TextLoader,
+            silent_errors=True,
         )
-        splits = text_splitter.split_documents(docs)
-        
-        # Create FAISS memory vector store
-        self.vector_store = FAISS.from_documents(splits, self.embeddings)
-        logger.info(f"Successfully indexed {len(splits)} chunks into FAISS vector store.")
+        txt_docs = txt_loader.load()
+        if txt_docs:
+            logger.info(f"[RAG] Loaded {len(txt_docs)} .txt document(s).")
+            all_docs.extend(txt_docs)
 
-    def retrieve_context(self, query: str, k: int = 3) -> str:
+        # 2) Load structured .xml files, parsed section-by-section
+        for fname in os.listdir(self.document_dir):
+            if fname.lower().endswith(".xml"):
+                xml_docs = _load_xml_knowledge(
+                    os.path.join(self.document_dir, fname)
+                )
+                all_docs.extend(xml_docs)
+
+        if not all_docs:
+            logger.warning(
+                "[RAG] No documents found in document/. "
+                "MedlinePlus will be used as the sole knowledge source."
+            )
+            return
+
+        # Chunk only .txt docs (XML docs are pre-chunked by <section>)
+        txt_raw = [d for d in all_docs if d.metadata.get("source", "").endswith(".txt")
+                   or "file" not in d.metadata]
+        xml_raw = [d for d in all_docs if "file" in d.metadata]
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=800, chunk_overlap=100, length_function=len
+        )
+        txt_splits = splitter.split_documents(txt_raw) if txt_raw else []
+        all_splits = txt_splits + xml_raw  # XML sections already sized correctly
+
+        self.vector_store = FAISS.from_documents(all_splits, self.embeddings)
+        logger.info(
+            f"[RAG] Indexed {len(all_splits)} chunks "
+            f"({len(txt_splits)} from .txt, {len(xml_raw)} from .xml)"
+        )
+
+    # ------------------------------------------------------------------
+    # Local FAISS retrieval
+    # ------------------------------------------------------------------
+    def _retrieve_local(self, query: str, k: int = 3) -> list[Document]:
         if not self.vector_store:
-            return ""
-            
+            return []
         try:
-            results = self.vector_store.similarity_search(query, k=k)
-            context = "\n---\n".join([doc.page_content for doc in results])
-            return context
+            return self.vector_store.similarity_search(query, k=k)
         except Exception as e:
-            logger.error(f"Error retrieving RAG context: {e}")
+            logger.error(f"[RAG] FAISS error: {e}")
+            return []
+
+    # ------------------------------------------------------------------
+    # MedlinePlus retrieval
+    # ------------------------------------------------------------------
+    def retrieve_medlineplus(self, query: str, retmax: int = 3) -> str:
+        results = search_medlineplus(query, lang="en", retmax=retmax)
+        return format_for_rag(results)
+
+    # ------------------------------------------------------------------
+    # Combined retrieval — main entry point called by rag_search_node
+    # ------------------------------------------------------------------
+    def retrieve_context(
+        self,
+        query: str,
+        k: int = 3,
+        use_medlineplus: bool = True,
+    ) -> str:
+        """
+        Always queries BOTH local FAISS and MedlinePlus, then combines
+        the results into a single XML context block for the summarizer.
+
+            <local_knowledge>   ← TSOC XML / .txt documents (FAISS)
+              ...
+            </local_knowledge>
+            <medlineplus_results>  ← MedlinePlus authoritative content
+              ...
+            </medlineplus_results>
+        """
+        parts: list[str] = []
+
+        # 1) Local FAISS (TSOC and other local docs)
+        local_docs = self._retrieve_local(query, k=k)
+        if local_docs:
+            local_blocks = "\n---\n".join(d.page_content for d in local_docs)
+            parts.append(f"<local_knowledge>\n{local_blocks}\n</local_knowledge>")
+            logger.info(f"[RAG] Local FAISS returned {len(local_docs)} chunk(s).")
+        else:
+            logger.info("[RAG] No local chunks found.")
+
+        # 2) MedlinePlus — always query regardless of local results
+        if use_medlineplus:
+            mlp_xml = self.retrieve_medlineplus(query)
+            if mlp_xml:
+                parts.append(mlp_xml)
+                logger.info("[RAG] MedlinePlus results appended.")
+
+        if not parts:
             return ""
 
-# Initialize global singleton
+        return "\n\n".join(parts)
+
+
+
+# Global singleton
 rag_engine = RAGEngine()

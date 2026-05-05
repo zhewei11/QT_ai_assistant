@@ -10,7 +10,7 @@ from threading import Event, Thread
 import wave
 import rospy
 from audio_common_msgs.msg import AudioData
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 import riva.client
 import grpc
 
@@ -210,6 +210,9 @@ class RivaSpeechRecognitionSilero:
         # Subscribe to language changes from dispatcher
         rospy.Subscriber('/qt_ai_assistant/language_config', String, self._language_change_callback, queue_size=10)
 
+        # Subscribe to mic pause requests from dispatcher
+        rospy.Subscriber('/qt_ai_assistant/mic_pause', Bool, self._mic_pause_callback, queue_size=10)
+
         self.asr_event_queue = queue.Queue(maxsize=1)
         self.asr_event_thread = Thread(target=self._proccess_asr_events, daemon=True)        
         self.asr_event_thread.start()
@@ -236,6 +239,16 @@ class RivaSpeechRecognitionSilero:
             riva.client.add_word_boosting_to_config(self.config, self.boosted_lm_words, self.boosted_lm_score)
             riva.client.add_speaker_diarization_to_config(self.config, diarization_enable=self.speaker_diarization)
             rospy.loginfo(f" Riva ASR config successfully rebuilt for {new_lang}!")
+
+    def _mic_pause_callback(self, msg):
+        if msg.data:
+            self.pause()
+            rospy.loginfo("Microphone paused to prevent TTS echo.")
+            self.microphone_stream.reset(seconds_to_keep=0)
+        else:
+            self.resume()
+            rospy.loginfo("Microphone resumed after TTS.")
+            self.microphone_stream.reset(seconds_to_keep=0) # clear any voice immediately after resume
 
     def pause(self):
         self.is_paused = True

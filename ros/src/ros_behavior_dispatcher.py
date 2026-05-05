@@ -8,7 +8,7 @@ import rospy
 import zmq
 import json
 import math
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 
 # Implemented robust imports assuming qt_robot_interface is available in the workspace
 try:
@@ -54,6 +54,7 @@ class ROSBehaviorDispatcher:
 
         # Publisher to notify Riva of language changes
         self.lang_pub = rospy.Publisher('/qt_ai_assistant/language_config', String, queue_size=10)
+        self.mic_pause_pub = rospy.Publisher('/qt_ai_assistant/mic_pause', Bool, queue_size=10)
 
         # ZeroMQ PULL Socket Configuration
         self.context = zmq.Context()
@@ -94,7 +95,9 @@ class ROSBehaviorDispatcher:
         if action == "talk":
             text = payload.get("text", "")
             if text:
+                self.mic_pause_pub.publish(True)
                 self.talkText(text)
+                self.mic_pause_pub.publish(False)
                 
         elif action == "function":
             func_name = payload.get("function_name")

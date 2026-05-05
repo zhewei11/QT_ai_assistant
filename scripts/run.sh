@@ -30,6 +30,7 @@ echo "Riva Server is UP and listening! Proceeding with ROS nodes..."
 echo "[1/4] active ros virtual environment and run ros_behavior_dispatcher.py..."
 cd "$WORKSPACE_DIR/ros"
 # source /opt/ros/noetic/setup.bash
+source .venv/bin/activate
 python3 src/ros_behavior_dispatcher.py &
 DISPATCHER_PID=$!
 
@@ -50,6 +51,7 @@ echo "Dispatcher (5556) is UP and listening!"
 # 2. active ros virtual environment and run riva_speech_recongnition.py
 echo "[2/4] active ros virtual environment and run riva_speech_recongnition.py..."
 cd "$WORKSPACE_DIR/ros"
+source .venv/bin/activate
 python3 src/riva_speech_recongnition.py &
 RIVA_PID=$!
 

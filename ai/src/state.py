@@ -12,3 +12,4 @@ class AgentState(TypedDict):
     tool_raw_xml: str                        # raw knowledge from tool (XML format)
     refined_context: str                     # refined knowledge from summarizer
     final_response: str                      # final response to ROS
+    language: str                            # current language ('zh-TW' or 'en-US')
