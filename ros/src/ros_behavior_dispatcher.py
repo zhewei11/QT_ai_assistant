@@ -95,10 +95,7 @@ class ROSBehaviorDispatcher:
         if action == "talk":
             text = payload.get("text", "")
             if text:
-                self.mic_pause_pub.publish(True)
                 self.talkText(text)
-                rospy.sleep(1.0)
-                self.mic_pause_pub.publish(False)
                 
         elif action == "function":
             func_name = payload.get("function_name")

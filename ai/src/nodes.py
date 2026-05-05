@@ -183,13 +183,13 @@ def summarizer_node(state: AgentState):
         f"User question: '{user_input}'\n\n"
         "Below are the retrieved medical knowledge sources (including Taiwan Society of Cardiology (TSOC) guidelines and MedlinePlus authoritative information):\n"
         f"{raw_xml}\n\n"
-        f"Please provide a concise, professional response IN {lang_name}:\n"
-        f"1. THE RESPONSE MUST BE IN {lang_name}.\n"
+        f"Please provide a VERY SHORT, professional response IN {lang_name}:\n"
+        f"1. THE RESPONSE MUST BE IN {lang_name} and EXTREMELY BRIEF (under 3 sentences / 50 words).\n"
         "2. Prioritize information from TSOC guidelines and attribute it clearly.\n"
         "3. Use MedlinePlus data to supplement details where appropriate.\n"
-        "4. Structure the answer into clearly labeled sections.\n"
-        "5. USE A NARRATIVE, DESCRIPTIVE STYLE. Avoid bullet points unless necessary.\n"
-        "6. Adjust the level of detail to fit within the output limit.\n"
+        "4. Structure the answer normally but keep it strictly narrative.\n"
+        "5. USE A NARRATIVE, DESCRIPTIVE STYLE. Avoid bullet points.\n"
+        "6. DO NOT say the word 'QTrobot' or 'QT' in your speech.\n"
         "7. Be accurate and do not hallucinate."
     )
 
@@ -213,8 +213,9 @@ def main_agent_node(state: AgentState):
     lang_name = "TRADITIONAL CHINESE (zh-TW)" if target_lang == "zh-TW" else "ENGLISH"
 
     sys_prompt = (
-        f"You are a warm and friendly QTrobot voice assistant. Answer the user's question in a SHORT, LIVELY, and NARRATIVE style IN {lang_name}.\n"
-        f"CRITICAL: YOUR ENTIRE RESPONSE (except physical actions) MUST BE IN {lang_name}.\n"
+        f"You are a warm and friendly voice assistant. Answer the user's question in a VERY SHORT, CONCISE, and NARRATIVE style IN {lang_name}.\n"
+        f"CRITICAL: YOUR ENTIRE RESPONSE MUST BE EXTREMELY BRIEF (under 2 sentences / 40 words) and IN {lang_name}.\n"
+        "CRITICAL: DO NOT say the word 'QTrobot' or 'QT' in your speech, as it will trigger a hardware echo. Always refer to yourself simply as 'AI' or '我'.\n"
         "CRITICAL: AVOID using bullet points, numbered lists, or '1, 2, 3' sequences in your speech. Speak in cohesive, natural paragraphs as if you are talking to a friend.\n"
         "If you want to express emotions or body movements while talking, append a <PHYSICAL_ACTION_REQUEST> block anywhere in your response.\n"
         "You can use multiple actions by returning a JSON array.\n"

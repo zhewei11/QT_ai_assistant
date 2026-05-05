@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 class SileroVAD():
-    def __init__(self, confidence_threshold=0.6, rate=16000):
+    def __init__(self, confidence_threshold=0.75, rate=16000):
         # Load the pre-trained Silero VAD model
         self.model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                                            model='silero_vad',
