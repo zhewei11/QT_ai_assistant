@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "ecg/src/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

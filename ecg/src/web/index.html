@@ -4,455 +4,685 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinical ECG Monitoring Dashboard</title>
+    <title>QTrobot ECG Monitor</title>
     <style>
+        :root {
+            --ui-scale: 1;
+            --outer-gap: calc(8px * var(--ui-scale));
+            --radius: calc(8px * var(--ui-scale));
+            --metrics-h: calc(112px * var(--ui-scale));
+            --screening-h: calc(44px * var(--ui-scale));
+            --status-h: calc(36px * var(--ui-scale));
+            --metric-pad-y: calc(12px * var(--ui-scale));
+            --metric-pad-x: calc(16px * var(--ui-scale));
+            --label-size: calc(15px * var(--ui-scale));
+            --value-size: calc(32px * var(--ui-scale));
+            --unit-size: calc(17px * var(--ui-scale));
+            --hrv-label-size: calc(14px * var(--ui-scale));
+            --hrv-value-size: calc(21px * var(--ui-scale));
+            --screening-size: calc(14px * var(--ui-scale));
+            --screening-value-size: calc(18px * var(--ui-scale));
+            --status-size: calc(14px * var(--ui-scale));
+            --wave-padding: calc(22px * var(--ui-scale));
+        }
+
         * {
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
+            letter-spacing: 0;
         }
 
-        body,
-        html {
-            margin: 0;
-            padding: 0;
+        html,
+        body {
             width: 100%;
-            height: 100vh;
-            background-color: #0D0D0D;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
+            height: 100%;
+            margin: 0;
+            background: #07110d;
+            color: #f3f7f4;
             overflow: hidden;
         }
 
-        .top-bar {
-            display: flex;
-            height: 180px;
-            padding: 20px;
-            gap: 20px;
-            flex-shrink: 0;
-        }
-
-        .card {
-            background-color: #1A1A1A;
-            border: 1px solid #333333;
-            border-radius: 8px;
+        body {
             display: flex;
             flex-direction: column;
-            align-items: center;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1.05fr 1.65fr 1.55fr 1.15fr;
+            height: var(--metrics-h);
+            border: 1px solid #26352f;
+            border-radius: var(--radius);
+            margin: var(--outer-gap);
+            overflow: hidden;
+            background: #111a16;
+            flex: 0 0 auto;
+        }
+
+        .metric {
+            padding: var(--metric-pad-y) var(--metric-pad-x);
+            border-right: 1px solid #26352f;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
-            padding: 15px 20px;
+            min-width: 0;
         }
 
-        .hr-card {
-            flex: 1;
+        .metric:last-child {
+            border-right: 0;
         }
 
-        .ar-card {
-            flex: 1;
-        }
-
-        .hrv-card {
-            flex: 1.2;
-        }
-
-        .card-header {
-            font-size: 14px;
-            color: #888888;
-            font-weight: bold;
+        .label {
+            color: #8e9994;
+            font-size: var(--label-size);
+            font-weight: 800;
             text-transform: uppercase;
-            margin-bottom: 5px;
-            text-align: center;
+            margin-bottom: calc(5px * var(--ui-scale));
+            white-space: nowrap;
         }
 
-        .card-value {
-            font-size: 36px;
-            font-weight: bold;
-            line-height: 1.2;
-            text-align: center;
-        }
-
-        #bpmDisplay {
-            color: #00E5FF;
-        }
-
-        #arrhythmiaDisplay {
-            color: #777777;
-        }
-
-        .hrv-metric {
-            color: #00FF41;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .status-row {
-            padding: 0 20px 10px 20px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        #statusLabel {
-            font-size: 14px;
-            color: #666666;
-        }
-
-        .plot-container {
-            flex: 1;
-            margin: 0 20px;
-            border: 1px solid #333333;
-            border-radius: 8px;
-            background-color: #0D0D0D;
-            position: relative;
+        .value {
+            color: #f4f7f5;
+            font-size: var(--value-size);
+            font-weight: 800;
+            line-height: 1.05;
+            white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .value.accent {
+            color: #ffcf6b;
+        }
+
+        .value.good {
+            color: #47df8a;
+        }
+
+        .value.warn {
+            color: #ffcf6b;
+        }
+
+        .value.bad {
+            color: #ff6666;
+        }
+
+        .bpm-unit {
+            color: #8e9994;
+            font-size: var(--unit-size);
+            margin-left: calc(5px * var(--ui-scale));
+        }
+
+        .hrv {
+            display: flex;
+            gap: calc(10px * var(--ui-scale));
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+
+        .hrv span {
+            color: #8e9994;
+            font-size: var(--hrv-label-size);
+            font-weight: 400;
+        }
+
+        .hrv strong {
+            color: #f4f7f5;
+            font-size: var(--hrv-value-size);
+            margin-left: calc(4px * var(--ui-scale));
+        }
+
+        .screening {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: calc(12px * var(--ui-scale));
+            align-items: center;
+            height: var(--screening-h);
+            border-top: 1px solid #26352f;
+            border-bottom: 1px solid #26352f;
+            margin: 0 var(--outer-gap);
+            padding: 0 calc(12px * var(--ui-scale));
+            color: #8e9994;
+            font-size: var(--screening-size);
+            font-weight: 800;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+        }
+
+        .screening strong {
+            color: #ffcf6b;
+            font-size: var(--screening-value-size);
+            margin-left: calc(8px * var(--ui-scale));
+        }
+
+        .status {
+            height: var(--status-h);
+            display: flex;
+            align-items: center;
+            gap: calc(8px * var(--ui-scale));
+            padding: 0 var(--outer-gap);
+            color: #98a39f;
+            font-size: var(--status-size);
+            font-weight: 800;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+        }
+
+        .dot {
+            width: calc(8px * var(--ui-scale));
+            height: calc(8px * var(--ui-scale));
+            border-radius: 999px;
+            background: #6f7b76;
+            flex: 0 0 auto;
+        }
+
+        .dot.live {
+            background: #35e783;
+            box-shadow: 0 0 14px rgba(53, 231, 131, 0.7);
+        }
+
+        .plot {
+            position: relative;
+            flex: 1;
+            margin: 0 var(--outer-gap) var(--outer-gap);
+            min-height: 0;
+            border: 1px solid #26352f;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: #07110d;
+        }
+
+        .plot-debug {
+            position: absolute;
+            left: calc(12px * var(--ui-scale));
+            top: calc(10px * var(--ui-scale));
+            z-index: 3;
+            color: rgba(152, 163, 159, 0.72);
+            font-size: calc(12px * var(--ui-scale));
+            font-weight: 700;
+            pointer-events: none;
+            text-transform: uppercase;
         }
 
         canvas {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             display: block;
         }
 
-        .bottom-bar {
-            padding: 20px;
-            display: flex;
-            gap: 15px;
-            flex-shrink: 0;
-        }
+        @media (max-width: 900px) {
+            .metrics {
+                grid-template-columns: 1fr 1fr;
+                height: calc(var(--metrics-h) * 1.55);
+            }
 
-        .btn {
-            height: 50px;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
+            .metric:nth-child(2) {
+                border-right: 0;
+            }
 
-        #btnStop {
-            background-color: #0066CC;
-            flex: 3;
-        }
+            .metric:nth-child(1),
+            .metric:nth-child(2) {
+                border-bottom: 1px solid #26352f;
+            }
 
-        #btnStop:hover {
-            background-color: #0077EE;
-        }
+            .value {
+                font-size: calc(var(--value-size) * 0.85);
+            }
 
-        #btnStop.is-stopped {
-            background-color: #CC0000;
-        }
-
-        #btnReset {
-            background-color: #333333;
-            color: #AAAAAA;
-            flex: 1;
-        }
-
-        #btnReset.is-ready {
-            background-color: #2E8B57;
-            color: white;
+            .screening {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="top-bar">
-        <div class="card hr-card">
-            <div class="card-header">HEART RATE (BPM)</div>
-            <div class="card-value" id="bpmDisplay">--</div>
+    <section class="metrics">
+        <div class="metric">
+            <div class="label">Heart Rate</div>
+            <div class="value"><span id="bpmDisplay">--</span><span class="bpm-unit">BPM</span></div>
         </div>
-        <div class="card ar-card">
-            <div class="card-header">ARRHYTHMIA (60s)</div>
-            <div class="card-value" id="arrhythmiaDisplay">Ready</div>
+        <div class="metric">
+            <div class="label">Rhythm</div>
+            <div class="value accent" id="rhythmDisplay">Connecting</div>
         </div>
-        <div class="card hrv-card">
-            <div class="card-header">HRV METRICS</div>
-            <div id="rmssdDisplay" class="hrv-metric">RMSSD: -- ms</div>
-            <div id="pnn50Display" class="hrv-metric">pNN50: -- %</div>
+        <div class="metric">
+            <div class="label">Signal</div>
+            <div class="value" id="qualityDisplay">Connecting</div>
         </div>
-    </div>
-    <div class="status-row">
-        <div id="statusLabel">System Status: Idle | Ready to start 60s clinical analysis.</div>
-    </div>
-    <div class="plot-container">
-        <canvas id="bgCanvas" style="position:absolute; z-index: 1;"></canvas>
-        <canvas id="ecgCanvas" style="position:absolute; z-index: 2;"></canvas>
-    </div>
-    <div class="bottom-bar">
-        <button id="btnStop" class="btn">▶ START 60s ANALYSIS</button>
-        <button id="btnReset" class="btn">↺ RETEST</button>
-    </div>
+        <div class="metric">
+            <div class="label">HRV</div>
+            <div class="hrv">
+                <span>RMSSD <strong id="rmssdDisplay">--</strong></span>
+                <span>pNN50 <strong id="pnn50Display">--</strong></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="screening">
+        <div>R Peaks <strong id="rPeakDisplay">--</strong></div>
+        <div>Valid RR <strong id="validRrDisplay">--</strong></div>
+        <div>YBC Abnormal <strong id="ybcAbnormalDisplay">--</strong></div>
+        <div>YBC Result <strong id="ybcResultDisplay">--</strong></div>
+    </section>
+
+    <section class="status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusLabel">Connecting to ECG device</span>
+    </section>
+
+    <section class="plot">
+        <canvas id="gridCanvas"></canvas>
+        <canvas id="ecgCanvas"></canvas>
+        <div class="plot-debug" id="plotDebug">samples=0 | stream=connecting</div>
+    </section>
 
     <script>
-        const bgCanvas = document.getElementById('bgCanvas');
-        const bgCtx = bgCanvas.getContext('2d', { alpha: false });
-        const canvas = document.getElementById('ecgCanvas');
-        const ctx = canvas.getContext('2d');
+        const DATABASE_URL = "https://ecg-monitor-bf64d-default-rtdb.firebaseio.com";
+        const DEVICE_PATH = "devices/yuguard_01";
+        const STREAM_URL = `${DATABASE_URL}/${DEVICE_PATH}/stream.json`;
+        const ANALYSIS_URL = `${DATABASE_URL}/${DEVICE_PATH}/analysis.json`;
+        const SAMPLE_RATE = 375;
+        const WINDOW_SECONDS = 5;
+        const MAX_POINTS = SAMPLE_RATE * WINDOW_SECONDS;
 
-        const FS = 187.5;
-        const WINDOW_SECONDS = 2.0;
-        const MAX_POINTS = Math.floor(FS * WINDOW_SECONDS); // 375 samples
+        const gridCanvas = document.getElementById("gridCanvas");
+        const gridCtx = gridCanvas.getContext("2d", { alpha: false });
+        const ecgCanvas = document.getElementById("ecgCanvas");
+        const ecgCtx = ecgCanvas.getContext("2d");
+        const dataBuffer = new Float64Array(MAX_POINTS);
 
-        let dataBuffer = new Float64Array(MAX_POINTS); // Ring buffer of displayed samples
-        let isMonitoring = false;
-        let analysisDone = false;
-        let monitoringStartTime = 0;
-
-        // ── Peak Detection State ──────────────────────────────────────
-        // We keep a growing list of ABSOLUTE sample indices where R-peaks were found.
-        // This avoids any relative-index math between server and client.
         let totalSamplesReceived = 0;
-        let absolutePeaks = []; // global absolute indices of confirmed R-peaks
+        let lastPacketId = "";
+        let lastStreamAt = 0;
+        let waveCenter = 0.02;
+        let waveRange = 0.22;
+        let absolutePeaks = [];
+        let bpmHistory = [];
 
-        // ── Buttons ───────────────────────────────────────────────────
-        const btnStop = document.getElementById('btnStop');
-        const btnReset = document.getElementById('btnReset');
-        const bpmDisplay = document.getElementById('bpmDisplay');
-        const arrhythmiaDisplay = document.getElementById('arrhythmiaDisplay');
-        const statusLabel = document.getElementById('statusLabel');
+        const bpmDisplay = document.getElementById("bpmDisplay");
+        const rhythmDisplay = document.getElementById("rhythmDisplay");
+        const qualityDisplay = document.getElementById("qualityDisplay");
+        const rmssdDisplay = document.getElementById("rmssdDisplay");
+        const pnn50Display = document.getElementById("pnn50Display");
+        const rPeakDisplay = document.getElementById("rPeakDisplay");
+        const validRrDisplay = document.getElementById("validRrDisplay");
+        const ybcAbnormalDisplay = document.getElementById("ybcAbnormalDisplay");
+        const ybcResultDisplay = document.getElementById("ybcResultDisplay");
+        const statusLabel = document.getElementById("statusLabel");
+        const statusDot = document.getElementById("statusDot");
+        const plotDebug = document.getElementById("plotDebug");
 
-        btnStop.addEventListener('click', () => {
-            isMonitoring = !isMonitoring;
-            updateButtons();
-            if (isMonitoring) {
-                monitoringStartTime = Date.now();
-                statusLabel.innerText = "System Status: Monitoring...";
-                analysisDone = false;
-            } else {
-                statusLabel.innerText = "System Status: Paused.";
-            }
-        });
-
-        btnReset.addEventListener('click', () => {
-            dataBuffer.fill(0);
-            absolutePeaks = [];
-            totalSamplesReceived = 0;
-            bpmDisplay.innerText = "--";
-            arrhythmiaDisplay.innerText = "Ready";
-            arrhythmiaDisplay.style.color = "#777777";
-            document.getElementById('rmssdDisplay').innerText = "RMSSD: -- ms";
-            document.getElementById('pnn50Display').innerText = "pNN50: -- %";
-            analysisDone = false;
-            monitoringStartTime = Date.now();
-            updateButtons();
-        });
-
-        function updateButtons() {
-            if (isMonitoring) {
-                btnStop.innerHTML = "⏸ STOP MONITORING";
-                btnStop.classList.add('is-stopped');
-            } else {
-                btnStop.innerHTML = "▶ START 60s ANALYSIS";
-                btnStop.classList.remove('is-stopped');
-            }
-            btnReset.classList.toggle('is-ready', analysisDone);
+        function setStatus(text, live = false) {
+            statusLabel.textContent = text;
+            statusDot.classList.toggle("live", live);
         }
 
-        // ── R-Peak Detection in JS (Pan-Tompkins) ─────────────────────
-        // Runs on the entire dataBuffer to find absolute global peaks.
-        function detectRPeaks(buffer, totalReceived) {
-            const n = buffer.length;
-            if (n < FS) return; // Need at least 1s of data
+        function setTone(el, tone) {
+            el.classList.remove("good", "warn", "bad", "accent");
+            if (tone) el.classList.add(tone);
+        }
 
-            // 1. Differentiate
+        function normalizeScore(value) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number.toFixed(3) : "--";
+        }
+
+        function updatePlotDebug(state = "") {
+            const age = lastStreamAt ? ((Date.now() - lastStreamAt) / 1000).toFixed(1) : "--";
+            plotDebug.textContent = `samples=${totalSamplesReceived} | last=${age}s | ${state}`;
+        }
+
+        function appendSamples(samples) {
+            for (const raw of samples) {
+                const value = Number(raw);
+                if (!Number.isFinite(value)) continue;
+                dataBuffer.copyWithin(0, 1);
+                dataBuffer[MAX_POINTS - 1] = value;
+                totalSamplesReceived += 1;
+            }
+            if (samples.length) lastStreamAt = Date.now();
+        }
+
+        function numericArrayFrom(value) {
+            if (Array.isArray(value)) return value;
+            if (!value || typeof value !== "object") return null;
+            const keys = Object.keys(value);
+            if (!keys.length || !keys.every((key) => /^\d+$/.test(key))) return null;
+            return keys.sort((a, b) => Number(a) - Number(b)).map((key) => value[key]);
+        }
+
+        function extractPacket(firebaseEvent) {
+            if (!firebaseEvent || firebaseEvent.data == null) return null;
+            const data = firebaseEvent.data;
+            const directArray = numericArrayFrom(data);
+            if (directArray) return { batch: directArray, id: JSON.stringify([firebaseEvent.path, directArray.length, directArray[0], directArray[directArray.length - 1]]) };
+            if (typeof data !== "object") return null;
+            const batch = numericArrayFrom(data.batch) || numericArrayFrom(data.stream) || numericArrayFrom(data.data);
+            if (!batch) return null;
+            const id = data.session_id != null && data.sequence != null
+                ? `${data.session_id}:${data.sequence}`
+                : JSON.stringify([firebaseEvent.path, batch.length, batch[0], batch[batch.length - 1]]);
+            return { batch, id };
+        }
+
+        function connectStream() {
+            const source = new EventSource(STREAM_URL);
+            source.onopen = () => setStatus("Connected to ECG cloud stream", true);
+            source.onerror = () => {
+                setStatus("Reconnecting to ECG cloud stream", false);
+                updatePlotDebug("stream=reconnecting");
+            };
+            const handleStreamEvent = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    const packet = extractPacket(payload);
+                    if (!packet) {
+                        updatePlotDebug(`event=${event.type} no-batch`);
+                        return;
+                    }
+                    if (packet.id === lastPacketId) return;
+                    lastPacketId = packet.id;
+                    appendSamples(packet.batch);
+                    detectRPeaks();
+                    updateLiveMetrics();
+                    updatePlotDebug(`event=${event.type}`);
+                } catch (error) {
+                    setStatus("ECG stream parse error", false);
+                    updatePlotDebug(`parse-error=${event.type}`);
+                }
+            };
+            source.onmessage = handleStreamEvent;
+            source.addEventListener("put", handleStreamEvent);
+            source.addEventListener("patch", handleStreamEvent);
+        }
+
+        function connectAnalysis() {
+            const source = new EventSource(ANALYSIS_URL);
+            const handleAnalysisEvent = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    const analysis = payload && payload.data;
+                    if (analysis) updateAnalysis(analysis);
+                } catch (error) {
+                    // Keep live waveform visible even if analysis metadata is unavailable.
+                }
+            };
+            source.onmessage = handleAnalysisEvent;
+            source.addEventListener("put", handleAnalysisEvent);
+            source.addEventListener("patch", handleAnalysisEvent);
+        }
+
+        function updateAnalysis(snapshot) {
+            const status = snapshot.status || "";
+            const metrics = snapshot.metrics || {};
+            const analysis = snapshot.arrhythmia_analysis || {};
+            const modelArrhythmia = snapshot.model_arrhythmia || {};
+            const quality = analysis.signal_quality || {};
+
+            if (Number.isFinite(Number(metrics.bpm))) bpmDisplay.textContent = Number(metrics.bpm).toFixed(1);
+            if (Number.isFinite(Number(metrics.rmssd_ms))) rmssdDisplay.textContent = `${Number(metrics.rmssd_ms).toFixed(1)}ms`;
+            if (Number.isFinite(Number(metrics.pnn50_percent))) pnn50Display.textContent = `${Number(metrics.pnn50_percent).toFixed(1)}%`;
+
+            rPeakDisplay.textContent = Number.isFinite(Number(metrics.r_peak_count))
+                ? String(metrics.r_peak_count)
+                : "--";
+            validRrDisplay.textContent = Number.isFinite(Number(metrics.valid_rr_count))
+                ? String(metrics.valid_rr_count)
+                : "--";
+            if (modelArrhythmia.status === "complete") {
+                const abnormalPercent = Number(modelArrhythmia.abnormal_beat_percent || 0);
+                const labels = modelArrhythmia.abnormal_labels || [];
+                ybcAbnormalDisplay.textContent = `${abnormalPercent.toFixed(1)}%`;
+                ybcResultDisplay.textContent = modelArrhythmia.arrhythmia_detected
+                    ? (labels.length ? labels.join("/") : "ABNORMAL")
+                    : "OK";
+            } else if (modelArrhythmia.status) {
+                ybcAbnormalDisplay.textContent = "--";
+                ybcResultDisplay.textContent = String(modelArrhythmia.status).replaceAll("_", " ").toUpperCase();
+            } else {
+                ybcAbnormalDisplay.textContent = "--";
+                ybcResultDisplay.textContent = "--";
+            }
+
+            if (quality.label) {
+                qualityDisplay.textContent = String(quality.label).toUpperCase();
+                setTone(qualityDisplay, quality.label === "good" ? "good" : quality.label === "poor" ? "bad" : "warn");
+            }
+
+            if (status === "waiting_device") {
+                rhythmDisplay.textContent = "Waiting";
+                setTone(rhythmDisplay, "warn");
+                setStatus("Waiting for ECG device", false);
+            } else if (status === "waiting_signal") {
+                rhythmDisplay.textContent = "Detecting";
+                setTone(rhythmDisplay, "warn");
+                setStatus("Validating ECG quality", true);
+            } else if (status === "measuring") {
+                rhythmDisplay.textContent = "Measuring";
+                setTone(rhythmDisplay, "accent");
+                setStatus("60-second ECG measurement in progress", true);
+            } else if (status === "complete") {
+                if (modelArrhythmia.status === "complete") {
+                    rhythmDisplay.textContent = modelArrhythmia.arrhythmia_detected ? "YBC ABNORMAL" : "YBC OK";
+                    setTone(rhythmDisplay, modelArrhythmia.arrhythmia_detected ? "warn" : "good");
+                } else {
+                    rhythmDisplay.textContent = "SCREENING";
+                    setTone(rhythmDisplay, "warn");
+                }
+                setStatus("Measurement complete", false);
+            } else if (status === "signal_timeout" || status === "stream_lost") {
+                rhythmDisplay.textContent = "Retry";
+                qualityDisplay.textContent = "LOW";
+                setTone(rhythmDisplay, "bad");
+                setTone(qualityDisplay, "bad");
+                setStatus(status.replaceAll("_", " "), false);
+            }
+        }
+
+        function detectRPeaks() {
+            const n = dataBuffer.length;
             const diff = new Float64Array(n);
-            for (let i = 1; i < n; i++) diff[i] = buffer[i] - buffer[i - 1];
-
-            // 2. Square
-            const sq = new Float64Array(n);
-            for (let i = 0; i < n; i++) sq[i] = diff[i] * diff[i];
-
-            // 3. MWA (80ms = ~15 samples at 187.5Hz)
-            const winSize = Math.max(1, Math.round(FS * 0.08));
-            const mwa = new Float64Array(n);
+            const squared = new Float64Array(n);
+            for (let i = 1; i < n; i++) {
+                diff[i] = dataBuffer[i] - dataBuffer[i - 1];
+                squared[i] = diff[i] * diff[i];
+            }
+            const winSize = Math.max(1, Math.round(SAMPLE_RATE * 0.08));
+            const integrated = new Float64Array(n);
             let sum = 0;
             for (let i = 0; i < n; i++) {
-                sum += sq[i];
-                if (i >= winSize) sum -= sq[i - winSize];
-                mwa[i] = sum / winSize;
+                sum += squared[i];
+                if (i >= winSize) sum -= squared[i - winSize];
+                integrated[i] = sum / winSize;
             }
+            const finite = Array.from(integrated).filter(Number.isFinite).sort((a, b) => a - b);
+            if (!finite.length) return;
+            const reference = finite[Math.floor(finite.length * 0.99)];
+            if (!Number.isFinite(reference) || reference <= 0) return;
 
-            // 4. Normalize
-            let maxVal = 0;
-            for (let i = 0; i < n; i++) if (mwa[i] > maxVal) maxVal = mwa[i];
-            if (maxVal <= 0) return;
-            for (let i = 0; i < n; i++) mwa[i] /= maxVal;
-
-            // 5. Find peaks (height > 0.35, distance > 300ms = ~56 samples)
-            const minDist = Math.round(FS * 0.3);
-            const threshold = 0.35;
-            const candidates = [];
+            const threshold = reference * 0.35;
+            const distance = Math.round(SAMPLE_RATE * 0.3);
+            const searchRadius = Math.round(SAMPLE_RATE * 0.06);
+            const localPeaks = [];
+            let lastPeak = -distance;
             for (let i = 1; i < n - 1; i++) {
-                if (mwa[i] > threshold && mwa[i] >= mwa[i - 1] && mwa[i] >= mwa[i + 1]) {
-                    candidates.push(i);
-                }
-            }
-
-            // Enforce min distance
-            const filtered = [];
-            for (const c of candidates) {
-                if (filtered.length === 0 || c - filtered[filtered.length - 1] >= minDist) {
-                    filtered.push(c);
-                }
-            }
-
-            // 6. Refine to actual signal peak (50ms window)
-            const searchWin = Math.round(FS * 0.05);
-            const newPeaks = [];
-            for (const p of filtered) {
-                const s = Math.max(0, p - searchWin);
-                const e = Math.min(n, p + searchWin);
-                let maxY = -Infinity, maxIdx = s;
-                for (let k = s; k < e; k++) {
-                    if (buffer[k] > maxY) { maxY = buffer[k]; maxIdx = k; }
-                }
-                // Convert local buffer index to absolute sample index
-                // buffer represents samples from (totalReceived - n) to (totalReceived - 1)
-                const absIdx = (totalReceived - n) + maxIdx;
-                newPeaks.push(absIdx);
-            }
-
-            // 7. Merge with existing absolutePeaks (refractory: 250ms)
-            const refractSamples = Math.round(FS * 0.25);
-            for (const abs of newPeaks) {
-                if (absolutePeaks.length === 0 || abs - absolutePeaks[absolutePeaks.length - 1] > refractSamples) {
-                    absolutePeaks.push(abs);
-                }
-            }
-
-            // Keep only recent peaks to bound memory
-            const keepSince = totalReceived - Math.round(FS * 60);
-            absolutePeaks = absolutePeaks.filter(p => p >= keepSince);
-        }
-
-        // ── Client-side Metrics from absolute peaks ───────────────────
-        function computeMetrics(recentPeaks, fs) {
-            if (recentPeaks.length < 2) return null;
-            const rr = [];
-            for (let i = 1; i < recentPeaks.length; i++) {
-                rr.push((recentPeaks[i] - recentPeaks[i - 1]) / fs * 1000.0);
-            }
-            const meanRR = rr.reduce((a, b) => a + b, 0) / rr.length;
-            const bpm = Math.round(60000 / meanRR);
-            const diffs = rr.slice(1).map((r, i) => r - rr[i]);
-            const rmssd = Math.sqrt(diffs.reduce((a, b) => a + b * b, 0) / diffs.length);
-            const nn50 = diffs.filter(d => Math.abs(d) > 50).length;
-            const pnn50 = (nn50 / diffs.length) * 100;
-            const sdRR = Math.sqrt(rr.reduce((a, b) => a + (b - meanRR) ** 2, 0) / rr.length);
-            const arrRatio = (sdRR / meanRR) * 100;
-            return { bpm, rmssd: rmssd.toFixed(1), pnn50: pnn50.toFixed(1), arrRatio: arrRatio.toFixed(1) };
-        }
-
-        // ── WebSocket ─────────────────────────────────────────────────
-        const ws = new WebSocket("ws://" + window.location.hostname + ":8000");
-
-        ws.onmessage = (event) => {
-            if (!isMonitoring) return;
-
-            const msg = JSON.parse(event.data);
-            if (!msg.batch) return;
-
-            const batch = msg.batch;
-            const n = batch.length;
-
-            // Append to ring buffer (shift left, push right)
-            for (let i = 0; i < n; i++) {
-                // Shift
-                dataBuffer.copyWithin(0, 1);
-                dataBuffer[MAX_POINTS - 1] = batch[i];
-            }
-            totalSamplesReceived += n;
-
-            // Detect peaks on the full buffer
-            detectRPeaks(dataBuffer, totalSamplesReceived);
-
-            // Metrics
-            const metrics = computeMetrics(absolutePeaks, FS);
-            if (metrics) bpmDisplay.innerText = metrics.bpm;
-
-            // Arrhythmia countdown
-            const elapsed = (Date.now() - monitoringStartTime) / 1000;
-            if (!analysisDone) {
-                if (elapsed < 60) {
-                    arrhythmiaDisplay.innerText = "Wait: " + Math.ceil(60 - elapsed) + "s";
-                    arrhythmiaDisplay.style.color = "#777777";
-                } else {
-                    analysisDone = true;
-                    updateButtons();
-                    if (metrics) {
-                        const r = parseFloat(metrics.arrRatio);
-                        arrhythmiaDisplay.innerText = r.toFixed(1) + "%";
-                        arrhythmiaDisplay.style.color = r < 25 ? "#28a745" : r < 50 ? "#FFB300" : "#FF3333";
+                if (integrated[i] < threshold || integrated[i] < integrated[i - 1] || integrated[i] < integrated[i + 1]) continue;
+                if (i - lastPeak < distance) continue;
+                const start = Math.max(0, i - searchRadius);
+                const end = Math.min(n, i + searchRadius + 1);
+                let maxValue = -Infinity;
+                let maxIndex = i;
+                for (let j = start; j < end; j++) {
+                    if (dataBuffer[j] > maxValue) {
+                        maxValue = dataBuffer[j];
+                        maxIndex = j;
                     }
                 }
+                localPeaks.push(maxIndex);
+                lastPeak = i;
             }
 
-            if (metrics) {
-                document.getElementById('rmssdDisplay').innerText = `RMSSD: ${metrics.rmssd} ms`;
-                document.getElementById('pnn50Display').innerText = `pNN50: ${metrics.pnn50} %`;
-            }
-        };
+            const bufferStartAbs = totalSamplesReceived - n;
+            absolutePeaks = localPeaks.map((idx) => bufferStartAbs + idx).filter((idx) => idx > bufferStartAbs);
+        }
 
-        // ── Render ────────────────────────────────────────────────────
+        function updateLiveMetrics() {
+            if (absolutePeaks.length < 3) return;
+            const rr = [];
+            for (let i = 1; i < absolutePeaks.length; i++) {
+                const rrMs = (absolutePeaks[i] - absolutePeaks[i - 1]) / SAMPLE_RATE * 1000;
+                if (rrMs >= 300 && rrMs <= 2000) rr.push(rrMs);
+            }
+            if (rr.length < 2) return;
+            const recent = rr.slice(-5).sort((a, b) => a - b);
+            const medianRR = recent[Math.floor(recent.length / 2)];
+            const bpm = 60000 / medianRR;
+            bpmHistory.push(bpm);
+            if (bpmHistory.length > 8) bpmHistory.shift();
+            const sortedBpm = [...bpmHistory].sort((a, b) => a - b);
+            bpmDisplay.textContent = sortedBpm[Math.floor(sortedBpm.length / 2)].toFixed(0);
+
+            const diffs = rr.slice(1).map((v, i) => v - rr[i]);
+            if (diffs.length) {
+                const rmssd = Math.sqrt(diffs.reduce((acc, v) => acc + v * v, 0) / diffs.length);
+                const pnn50 = diffs.filter((v) => Math.abs(v) > 50).length / diffs.length * 100;
+                rmssdDisplay.textContent = `${rmssd.toFixed(1)}ms`;
+                pnn50Display.textContent = `${pnn50.toFixed(1)}%`;
+            }
+        }
+
+        function updateResponsiveScale() {
+            const width = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1280);
+            const height = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 720);
+            const baseChromeHeight = 112 + 44 + 36 + 32;
+            const maxChromeHeight = height * 0.38;
+            const viewportScale = Math.min(width / 1280, height / 720);
+            const chromeScale = maxChromeHeight / baseChromeHeight;
+            const scale = Math.max(0.68, Math.min(1.28, viewportScale, chromeScale));
+            document.documentElement.style.setProperty("--ui-scale", scale.toFixed(3));
+        }
+
+        function cssNumber(name, fallback) {
+            const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            const value = Number.parseFloat(raw);
+            return Number.isFinite(value) ? value : fallback;
+        }
+
         function resize() {
-            const c = canvas.parentElement;
-            canvas.width = c.clientWidth; canvas.height = c.clientHeight;
-            bgCanvas.width = canvas.width; bgCanvas.height = canvas.height;
+            updateResponsiveScale();
+            const rect = ecgCanvas.parentElement.getBoundingClientRect();
+            const width = Math.max(1, Math.floor(rect.width));
+            const height = Math.max(1, Math.floor(rect.height));
+            for (const c of [gridCanvas, ecgCanvas]) {
+                c.width = width;
+                c.height = height;
+            }
             drawGrid();
         }
-        window.addEventListener('resize', resize);
 
         function drawGrid() {
-            bgCtx.fillStyle = '#111111';
-            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-            bgCtx.strokeStyle = 'rgba(255,255,255,0.05)';
-            bgCtx.lineWidth = 1;
-            for (let x = 0; x < bgCanvas.width; x += 15) { bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height); bgCtx.stroke(); }
-            for (let y = 0; y < bgCanvas.height; y += 15) { bgCtx.beginPath(); bgCtx.moveTo(0, y); bgCtx.lineTo(bgCanvas.width, y); bgCtx.stroke(); }
-            bgCtx.strokeStyle = 'rgba(255,255,255,0.12)';
-            const xStep = bgCanvas.width / 10;
-            for (let i = 0; i <= 10; i++) { const x = i * xStep; bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, bgCanvas.height); bgCtx.stroke(); }
+            gridCtx.fillStyle = "#07110d";
+            gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+            gridCtx.strokeStyle = "rgba(255,255,255,0.06)";
+            gridCtx.lineWidth = 1;
+            const small = 48;
+            for (let x = 0; x <= gridCanvas.width; x += small) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, gridCanvas.height);
+                gridCtx.stroke();
+            }
+            for (let y = 0; y <= gridCanvas.height; y += small) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(gridCanvas.width, y);
+                gridCtx.stroke();
+            }
+            gridCtx.strokeStyle = "rgba(66,232,139,0.18)";
+            gridCtx.beginPath();
+            gridCtx.moveTo(0, gridCanvas.height / 2);
+            gridCtx.lineTo(gridCanvas.width, gridCanvas.height / 2);
+            gridCtx.stroke();
+        }
+
+        function toYFactory() {
+            const values = [];
+            for (let i = 0; i < dataBuffer.length; i++) {
+                const value = dataBuffer[i];
+                if (Number.isFinite(value) && Math.abs(value) > 1e-9) values.push(value);
+            }
+            if (values.length >= 12) {
+                values.sort((a, b) => a - b);
+                const low = values[Math.floor(values.length * 0.02)];
+                const high = values[Math.floor(values.length * 0.98)];
+                const targetCenter = (low + high) / 2;
+                const targetRange = Math.max((high - low) * 1.9, 0.20);
+                waveCenter = waveCenter * 0.985 + targetCenter * 0.015;
+                waveRange = waveRange * 0.94 + targetRange * 0.06;
+            }
+            if (!Number.isFinite(waveCenter) || !Number.isFinite(waveRange) || waveRange <= 0) {
+                waveCenter = 0.02;
+                waveRange = 0.22;
+            }
+            const padding = 22 * cssNumber("--ui-scale", 1);
+            const drawableHeight = Math.max(1, ecgCanvas.height - padding * 2);
+            const range = Math.max(waveRange, 0.18);
+            const top = waveCenter + range / 2;
+            return (value) => {
+                if (!Number.isFinite(value)) return ecgCanvas.height / 2;
+                const y = padding + ((top - value) / range) * drawableHeight;
+                return Math.max(padding, Math.min(ecgCanvas.height - padding, y));
+            };
         }
 
         function drawECG() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const yTop = 0.08, yBot = -0.06, yTotal = yTop - yBot;
-            const xStride = canvas.width / (MAX_POINTS - 1);
-
-            // Draw waveform
-            ctx.beginPath();
+            ecgCtx.clearRect(0, 0, ecgCanvas.width, ecgCanvas.height);
+            const toY = toYFactory();
+            const xStep = ecgCanvas.width / Math.max(1, MAX_POINTS - 1);
+            ecgCtx.beginPath();
+            let started = false;
             for (let i = 0; i < MAX_POINTS; i++) {
-                const y = ((yTop - dataBuffer[i]) / yTotal) * canvas.height;
-                if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * xStride, y);
+                const value = dataBuffer[i];
+                if (!Number.isFinite(value)) continue;
+                const x = i * xStep;
+                const y = toY(value);
+                if (!started) {
+                    ecgCtx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ecgCtx.lineTo(x, y);
+                }
             }
-            ctx.strokeStyle = '#00FF41'; ctx.lineWidth = 1.5; ctx.stroke();
+            if (started) {
+                ecgCtx.strokeStyle = "#42e88b";
+                ecgCtx.lineWidth = 2;
+                ecgCtx.stroke();
+            }
 
-            // Draw R-peaks
-            // Convert absolute indices to local buffer indices:
-            // local_idx = MAX_POINTS - 1 - (totalSamplesReceived - 1 - absIdx)
-            //           = absIdx - (totalSamplesReceived - MAX_POINTS)
             const bufferStartAbs = totalSamplesReceived - MAX_POINTS;
-            ctx.fillStyle = '#FF3333';
+            ecgCtx.fillStyle = "#ff5d66";
             for (const absIdx of absolutePeaks) {
                 const localIdx = absIdx - bufferStartAbs;
                 if (localIdx < 0 || localIdx >= MAX_POINTS) continue;
-                const xPos = localIdx * xStride;
-                const yPos = ((yTop - dataBuffer[localIdx]) / yTotal) * canvas.height;
-                ctx.beginPath();
-                ctx.arc(xPos, yPos, 5, 0, Math.PI * 2);
-                ctx.fill();
+                ecgCtx.beginPath();
+                ecgCtx.arc(localIdx * xStep, toY(dataBuffer[localIdx]), 5, 0, Math.PI * 2);
+                ecgCtx.fill();
             }
 
+            if (lastStreamAt && Date.now() - lastStreamAt > 5000) {
+                setStatus("Waiting for fresh ECG samples", false);
+                updatePlotDebug("stream=stale");
+            }
             requestAnimationFrame(drawECG);
         }
 
+        window.addEventListener("resize", resize);
         resize();
+        connectStream();
+        connectAnalysis();
         requestAnimationFrame(drawECG);
     </script>
 </body>

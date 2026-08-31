@@ -28,6 +28,15 @@ __pycache__/
 ehthumbs.db
 Thumbs.db
 
+# backup, merge residue, and temporary files
+*.bak
+*.backup
+*.backup.*
+*.orig
+*.rej
+*.tmp
+*.temp
+
 # 5. IDE and editor settings
 .vscode/
 .idea/
@@ -40,10 +49,21 @@ Thumbs.db
 *.log
 robot_actions.log
 logs/
+runtime/
+config/ecg_integration.env
+.firebase/
+ai/knowledge_cache/
 .langgraph_state/
 .langgraph_api/
 ai/.langgraph_api/
 *.sqlite3       # 如果你未來用 langgraph-checkpoint-sqlite 會產生此檔
+
+# test and analysis caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # 7. ros development temporary files
 build/

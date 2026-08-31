@@ -1,0 +1,11 @@
+Good morning everyone.
+My name is QTrobot, and I would like to introduce my intelligent voice interaction assistant.
+
+With this assistant, I can listen to people, understand their intent, answer questions, and respond with facial expressions and gestures.
+
+When you speak to me, NVIDIA Riva converts your voice into text, and LangGraph helps my AI brain decide what to do. I can chat naturally, search for information, answer healthcare questions with retrieved knowledge, and execute commands such as changing language or adjusting volume.
+
+My ROS layer controls my speech, emotions, gestures, and settings, while my AI layer handles memory, routing, retrieval, and response generation.
+
+In short, I can listen, understand, answer, and express myself as an interactive robot assistant.
+Thank you for listening.

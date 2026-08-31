@@ -42,7 +42,7 @@ def interactive_menu():
                 send_payload(socket, "Emotion Show", {
                     "action": "function",
                     "function_name": "emotionShow",
-                    "function_args": {"emotion": "QT/trhappy"}
+                    "function_args": {"emotion": "QT/happy"}
                 })
             elif choice == "3":
                 send_payload(socket, "Set Language", {

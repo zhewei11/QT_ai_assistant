@@ -1,0 +1,4 @@
+# Legacy desktop GUI dependencies.
+# Not needed for QTrobot/yuguard runtime measurement.
+pyqtgraph
+PyQt5

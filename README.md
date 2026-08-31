@@ -35,6 +35,7 @@ QT_ai_assistant/
 │   └── requirements.txt     # Specialized dependencies (Langchain, FAISS, ZMQ)
 │
 ├── ros/                     # Kinematic Actuation Layer (Native ROS 1 / Python 3.7)
+│   ├── config/              # ROS parameter YAML files for ASR and dispatcher tuning
 │   ├── src/
 │   │   ├── riva_speech_recongnition.py # Acoustic ingestion node
 │   │   └── ros_behavior_dispatcher.py  # Spatial and affective articulation engine
@@ -68,13 +69,74 @@ Execute the primary orchestration sequence:
 ./scripts/run.sh
 ```
 
-**Asynchronous Bootstrapping Sequence**:
-1. **[0/4] Riva Core Verification**: Validates GPU allocation and confirms RPC port binding for the speech engine.
-2. **[1/4] ROS Actuation Binding**: Instantiates the behavioral node, establishing a ZeroMQ subscriber socket on `5556`.
-3. **[2/4] ASR Transceiver Initiation**: Activates continuous acoustic monitoring to intercept ambient vocalizations.
-4. **[3/4] Cognitive Engine Deployment**: Compiles the LangGraph state machine and FAISS dense indices, opening publisher protocols on `5555`.
+To deploy the project from a laptop to the QTrobot body computer over SSH:
+```bash
+./scripts/deploy_to_robot.sh qtrobot@<robot-body-ip>
+```
 
-### 3.3 Dynamic Knowledge Ingestion Paradigm
+For a complete Traditional Chinese field setup guide covering Wi-Fi DHCP, SSH deployment, the YuGuard iOS Bluetooth bridge, Riva speech, and end-to-end verification, see:
+[`docs/QTROBOT_SETUP_TUTORIAL_zh-TW.md`](docs/QTROBOT_SETUP_TUTORIAL_zh-TW.md).
+
+The default remote target is `~/robot/code/tutorials/QT_ai_assistant`. The deploy script uses `rsync`, skips virtual environments, cache files, runtime outputs, git metadata, and local `.env` secrets by default, then creates `runtime/`, `logs/`, and a remote `config/ecg_integration.env` from the example when missing. Use `DEPLOY_DRY_RUN=true` to preview the upload first.
+
+If the field machine cannot use `rsync` and you need an `scp`-based full upload that avoids local environment files, see:
+[`docs/scp_deploy_without_env.md`](docs/scp_deploy_without_env.md).
+
+ROS tuning parameters are loaded automatically from:
+```text
+ros/config/riva_speech_recognition.yaml
+ros/config/dispatcher.yaml
+```
+
+For field testing, start by tuning `vad_confidence_threshold`, `consecutive_voice_chunks`, `pre_roll_seconds`, `min_voice_rms`, and `resume_cooldown`.
+
+For changing a robot/Linux `eth0` interface from static IP to DHCP, see:
+[`docs/eth0_dhcp_readme.md`](docs/eth0_dhcp_readme.md).
+
+**Asynchronous Bootstrapping Sequence**:
+1. **[0/6] ECG Integration Readiness**: Loads ECG configuration without starting a measurement. `ECG_MEASURE_ON_START=false` is the default so the assistant can remain running continuously.
+2. **[1/6] Riva Core Verification**: Validates GPU allocation and confirms RPC port binding for the speech engine.
+3. **[2/6] ROS Actuation Binding**: Instantiates the behavioral node, establishing a ZeroMQ subscriber socket on `5556`.
+4. **[3/6] Face Memory Binding**: Subscribes to `/qt_nuitrack_app/faces` and maintains up to four short-term face slots in `runtime/face_memory.json`.
+5. **[4/6] ASR Transceiver Initiation**: Activates continuous acoustic monitoring to intercept ambient vocalizations.
+6. **[5/6] Cognitive Engine Deployment**: Compiles the LangGraph state machine and FAISS dense indices, opening publisher protocols on `5555`.
+
+### 3.3 Bluetooth ECG Integration
+
+Deployment values are configured in `config/ecg_integration.env`. Set `QT_FACE_HOST` to the IP address or hostname of the Raspberry Pi that drives QTrobot's face display. Passwordless SSH must be configured from the body computer to that host.
+
+The canonical mobile bridge is the native iOS project at `../../../bluetooth/ecg_blooth`. The older `../../../bluetooth/ios-bridge` and root Node bridge are legacy implementations and must not be started together with the native app, because multiple writers would compete for the same Firebase command and stream paths.
+
+The remote kiosk command is executed by `scripts/open_ecg_kiosk.sh` and is equivalent to:
+
+```bash
+export DISPLAY=:0
+chromium-browser --disable-gpu --no-sandbox --kiosk --incognito "https://ecg-monitor-bf64d.web.app" &
+```
+
+The initial measurement stores BPM, RMSSD, pNN50, pRR30, pRR3.25%, SDNN, R-peak count, RR coefficient of variation, turning-point ratio, entropy features, premature-beat patterns, waveform summary, and signal quality. The screening layer labels regular, irregular, possible AF-like, frequent premature-beat, tachycardia, and bradycardia patterns. Results are written locally and to Firebase under `devices/yuguard_01/analysis`.
+
+The measurement state progresses through `waiting_device`, `waiting_signal`, `measuring`, and the final analysis status. The 60-second timer does not begin when the start command is sent; it begins only after fresh ECG samples pass signal-quality, R-peak, and R-R interval checks. `ECG_SIGNAL_WAIT_TIMEOUT_SECONDS` controls how long the system waits for a stable ECG signal before returning `signal_timeout`. During formal measurement, `ECG_STREAM_GAP_TIMEOUT_SECONDS` returns `stream_lost` if the phone or BLE stream stops sending data.
+
+For an ECG-only test without the AI/ROS dialogue pipeline, run `./scripts/test_ecg_standalone.sh`. It writes `command=reset`, clears the stream, writes `command=start`, waits for stable ECG quality, R peaks, and R-R intervals, then runs a short measurement. Set `ECG_TEST_DURATION=15` or `ECG_TEST_SIGNAL_WAIT_TIMEOUT=60` to tune the standalone test.
+
+ECG measurement is conversation-triggered by default. Startup does not measure ECG unless `ECG_MEASURE_ON_START=true` is explicitly set. If `ECG_OPEN_DASHBOARD_ON_START=true`, the dashboard opens at boot without starting the 60-second measurement.
+
+Face memory is a short-term slot tracker, not permanent biometric recognition. `ros/src/face_identity_memory.py` listens to Nuitrack's `/qt_nuitrack_app/faces` topic, maps the current `FaceInfo.id` to `person_1` through `person_4`, and evicts the least recently seen slot when a fifth new face appears. When an ECG measurement completes, the result is written back to the current slot. The AI therefore answers ECG-result questions from the current face slot first and refuses to reuse another person's ECG when no current face is visible.
+
+Runtime debug output is intentionally visible in the terminal. Startup prints ECG, face-memory, face-camera, and AI debug configuration. `scripts/open_ecg_kiosk.sh` prints the target face Raspberry Pi, display, URL, and remote Chromium launch result. `face_identity_memory.py` prints the current person slot, Nuitrack tracking ID, face center/rectangle, visible slots, and known slot count. Adjust `FACE_MEMORY_DEBUG_LOG_INTERVAL` to control how often face status is printed.
+
+To see what the robot camera sees during face testing, run `./scripts/open_face_camera_view.sh`. With a GUI display or SSH X forwarding it opens `rqt_image_view` or `image_view` on `/camera/color/image_raw`. From a remote laptop terminal without GUI forwarding, run `FACE_CAMERA_VIEWER=web ./scripts/open_face_camera_view.sh`; the script starts `web_video_server` when available and prints a browser URL for the camera stream.
+
+AI terminal output is kept compact by default. `AI_TERMINAL_DEBUG=normal` prints received speech text, current status, latency, AI stage timing, final speech, expression, and motion. Use `AI_TERMINAL_DEBUG=quiet` to hide the AI stage timing, or `AI_LOG_LEVEL=INFO` only when deeper code logs are needed. `AI_LIBRARY_LOG_LEVEL=WARNING` keeps OpenAI/httpx/LangChain library logs from flooding the terminal.
+
+The iOS app publishes each Firebase stream update as `{batch, session_id, sequence, sent_at_ms}`. The backend and dashboard also accept the legacy raw array format, but packet identity is preferred because it prevents Firebase reconnects from counting the retained packet twice.
+
+During a conversation, requests such as "再測一次心電圖" or "measure ECG again" are routed deterministically to the `measureECG` system command. The ROS dispatcher opens the dashboard and launches a new ECG session in the background without blocking the AI dialogue process. Duplicate requests are ignored while a measurement process is still running.
+
+The AI reloads this snapshot for every conversation turn and includes it only when relevant to ECG or medical questions. ECG output is limited to measured metrics, RR-based screening context, and the local YBC beat-level model under `model_arrhythmia`. The YBC output is not a calibrated disease probability and must not be presented as a diagnosis.
+
+### 3.4 Dynamic Knowledge Ingestion Paradigm
 The system integrates an auto-indexing FAISS mechanism designed for **hot-state initialization**. Upon executing `./scripts/run.sh`, the framework performs comprehensive traversal of `ai/document/**/*.txt`, executing robust tokenization and high-dimensional vector embeddings straight into volatile memory. This eliminates the necessity for manual retraining or explicit database migrations when updating the domain-specific corpus.
 
 ---

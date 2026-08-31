@@ -1,0 +1,32 @@
+# ROS behavior dispatcher timing parameters.
+# Loaded under /ros_behavior_dispatcher by scripts/run.sh.
+
+# Default app-level language when the dispatcher starts.
+# en-US maps to QTrobot TTS en-US and Riva ASR en-US.
+# zh-TW maps to QTrobot TTS zh-MA and Riva ASR zh-CN.
+default_language: zh-TW
+
+# QTrobot TTS voice parameters.
+# 100 is the original speed. 115-125 is usually clearer while still faster.
+default_tts_pitch: 100
+default_tts_speed: 118
+
+# QTrobot speaker volume at dispatcher startup, app-level 0-100.
+# This is mapped to the robot setting service's internal volume range.
+default_volume_level: 100
+
+# Voice command "pause microphone/listening" duration when no explicit seconds are provided.
+user_mic_pause_default_seconds: 10.0
+
+# Pause microphone slightly before starting TTS to avoid self-listening.
+mic_pause_lead_time: 0.1
+
+# Start speech, expression, and gesture from the same trigger event.
+multimodal_sync_start: true
+
+# Keep microphone paused briefly after TTS to avoid echo/reverb being recognized.
+mic_resume_delay: 0.8
+
+# Wait a little after publishing mic resume before printing "ready" in the terminal.
+# This should be equal to or slightly longer than ASR resume_cooldown.
+post_tts_ready_delay: 0.25

@@ -13,7 +13,9 @@ Retrieval strategy:
 """
 
 import os
+import time
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -21,6 +23,33 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from config import logger
 from medlineplus_rag import search_medlineplus, format_for_rag
+
+
+MIN_LOCAL_RELEVANCE = 0.35
+
+
+@dataclass
+class RetrievalReport:
+    context_xml: str
+    local_count: int
+    medlineplus_count: int
+    max_local_relevance: float
+
+    @property
+    def has_evidence(self) -> bool:
+        return bool(self.context_xml.strip())
+
+    @property
+    def has_sufficient_evidence(self) -> bool:
+        return self.medlineplus_count > 0 or self.max_local_relevance >= MIN_LOCAL_RELEVANCE
+
+    @property
+    def evidence_status(self) -> str:
+        if not self.has_evidence:
+            return "none"
+        if self.has_sufficient_evidence:
+            return "sufficient"
+        return "weak"
 
 
 
@@ -117,8 +146,20 @@ class RAGEngine:
             document_dir,
         )
         self.vector_store: FAISS | None = None
+        self.initialization_error = ""
+        self.cache_ttl_seconds = int(os.getenv("RAG_CACHE_TTL_SECONDS", "3600"))
+        self._report_cache: dict[str, tuple[float, RetrievalReport]] = {}
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        self._initialize_knowledge_base()
+        try:
+            self._initialize_knowledge_base()
+        except Exception as e:
+            self.initialization_error = str(e)
+            self.vector_store = None
+            logger.error(
+                "[RAG] Local knowledge initialization failed; "
+                "AI will continue with RAG degraded. "
+                f"error={e}"
+            )
 
     # ------------------------------------------------------------------
     # Initialization
@@ -169,7 +210,19 @@ class RAGEngine:
         txt_splits = splitter.split_documents(txt_raw) if txt_raw else []
         all_splits = txt_splits + xml_raw  # XML sections already sized correctly
 
-        self.vector_store = FAISS.from_documents(all_splits, self.embeddings)
+        try:
+            self.vector_store = FAISS.from_documents(all_splits, self.embeddings)
+        except Exception as e:
+            self.initialization_error = str(e)
+            self.vector_store = None
+            logger.error(
+                "[RAG] Failed to build local FAISS index. "
+                "This usually means embeddings cannot reach OpenAI "
+                "or DNS/network is unavailable. "
+                f"error={e}"
+            )
+            return
+
         logger.info(
             f"[RAG] Indexed {len(all_splits)} chunks "
             f"({len(txt_splits)} from .txt, {len(xml_raw)} from .xml)"
@@ -187,11 +240,25 @@ class RAGEngine:
             logger.error(f"[RAG] FAISS error: {e}")
             return []
 
+    def _retrieve_local_with_relevance(self, query: str, k: int = 3) -> list[tuple[Document, float]]:
+        if not self.vector_store:
+            return []
+        try:
+            results = self.vector_store.similarity_search_with_relevance_scores(query, k=k)
+            return [(doc, float(score)) for doc, score in results]
+        except Exception as e:
+            logger.warning(f"[RAG] FAISS relevance scoring unavailable, falling back to unscored search: {e}")
+            return [(doc, 0.0) for doc in self._retrieve_local(query, k=k)]
+
     # ------------------------------------------------------------------
     # MedlinePlus retrieval
     # ------------------------------------------------------------------
     def retrieve_medlineplus(self, query: str, retmax: int = 3) -> str:
-        results = search_medlineplus(query, lang="en", retmax=retmax)
+        try:
+            results = search_medlineplus(query, lang="en", retmax=retmax)
+        except Exception as e:
+            logger.warning(f"[RAG] MedlinePlus retrieval failed: {e}")
+            return ""
         return format_for_rag(results)
 
     # ------------------------------------------------------------------
@@ -214,28 +281,77 @@ class RAGEngine:
               ...
             </medlineplus_results>
         """
+        return self.retrieve_context_with_report(
+            query,
+            k=k,
+            use_medlineplus=use_medlineplus,
+        ).context_xml
+
+    def retrieve_context_with_report(
+        self,
+        query: str,
+        k: int = 3,
+        use_medlineplus: bool = True,
+    ) -> RetrievalReport:
+        """
+        Returns context plus retrieval metadata so medical-answer nodes can
+        refuse or ask for clarification when evidence is too weak.
+        """
+        cache_key = f"{query.strip().lower()}|k={k}|mlp={use_medlineplus}"
+        cached = self._report_cache.get(cache_key)
+        now = time.time()
+        if cached and now - cached[0] <= self.cache_ttl_seconds:
+            logger.info(f"[RAG] Cache hit for query: {query!r}")
+            return cached[1]
+
         parts: list[str] = []
+        max_local_relevance = 0.0
+        medlineplus_count = 0
 
         # 1) Local FAISS (TSOC and other local docs)
-        local_docs = self._retrieve_local(query, k=k)
-        if local_docs:
-            local_blocks = "\n---\n".join(d.page_content for d in local_docs)
+        local_results = self._retrieve_local_with_relevance(query, k=k)
+        if local_results:
+            max_local_relevance = max(score for _, score in local_results)
+            local_blocks = "\n---\n".join(
+                f"<chunk relevance=\"{score:.3f}\">\n{doc.page_content}\n</chunk>"
+                for doc, score in local_results
+            )
             parts.append(f"<local_knowledge>\n{local_blocks}\n</local_knowledge>")
-            logger.info(f"[RAG] Local FAISS returned {len(local_docs)} chunk(s).")
+            logger.info(
+                f"[RAG] Local FAISS returned {len(local_results)} chunk(s), "
+                f"max relevance={max_local_relevance:.3f}."
+            )
         else:
             logger.info("[RAG] No local chunks found.")
 
-        # 2) MedlinePlus — always query regardless of local results
-        if use_medlineplus:
-            mlp_xml = self.retrieve_medlineplus(query)
+        # 2) MedlinePlus — supplement when local evidence is weak or unavailable.
+        if use_medlineplus and max_local_relevance < MIN_LOCAL_RELEVANCE:
+            try:
+                medlineplus_results = search_medlineplus(query, lang="en", retmax=3)
+            except Exception as e:
+                medlineplus_results = []
+                logger.warning(f"[RAG] MedlinePlus retrieval failed: {e}")
+            medlineplus_count = len(medlineplus_results)
+            mlp_xml = format_for_rag(medlineplus_results)
             if mlp_xml:
                 parts.append(mlp_xml)
-                logger.info("[RAG] MedlinePlus results appended.")
+                logger.info(f"[RAG] MedlinePlus appended {medlineplus_count} result(s).")
+        elif use_medlineplus:
+            logger.info("[RAG] Local evidence sufficient; skipped MedlinePlus for latency.")
 
         if not parts:
-            return ""
+            report = RetrievalReport("", len(local_results), medlineplus_count, max_local_relevance)
+            self._report_cache[cache_key] = (now, report)
+            return report
 
-        return "\n\n".join(parts)
+        report = RetrievalReport(
+            context_xml="\n\n".join(parts),
+            local_count=len(local_results),
+            medlineplus_count=medlineplus_count,
+            max_local_relevance=max_local_relevance,
+        )
+        self._report_cache[cache_key] = (now, report)
+        return report
 
 
 

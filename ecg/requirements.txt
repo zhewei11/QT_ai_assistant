@@ -1,19 +1,16 @@
 # ==========================================
-# ECG Live Web Dashboard Requirements
+# ECG / Yuguard Measurement Requirements
 # ==========================================
-# Core DSP and Array Math
+# Core DSP and array math
 numpy
 scipy
-# CSV Data fallbacks
+
+# CSV data fallbacks
 pandas
-# Hardware Serial Reading (SPI/ESP32)
+
+# Hardware / stream readers
 pyserial
-# Asynchronous Web Streaming
+
+# Web dashboard / streaming helpers
 websockets
 matplotlib
-# ------------------------------------------
-# Legacy Desktop Application Requirements
-# (Optional, only needed for local PyQt testing)
-# ------------------------------------------
-pyqtgraph
-PyQt5

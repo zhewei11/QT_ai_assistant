@@ -36,6 +36,22 @@ _CACHE_TTL_DAYS = 7
 # ---------------------------------------------------------------------------
 MEDLINEPLUS_WS_URL = "https://wsearch.nlm.nih.gov/ws/query"
 
+MEDICAL_TERM_MAP = [
+    (r"心律不整|心律失常|心跳不規則|心跳不规则", "arrhythmia irregular heartbeat"),
+    (r"心房顫動|心房颤动|房顫|房颤|afib|af", "atrial fibrillation"),
+    (r"心電圖|心电图|心電|心电|ecg|ekg", "electrocardiogram ECG"),
+    (r"r\s*peak|r波|R波", "ECG R wave R peak"),
+    (r"心悸", "heart palpitations"),
+    (r"胸痛|胸悶|胸闷|胸口痛", "chest pain"),
+    (r"呼吸困難|呼吸困难|喘|喘不過氣|喘不过气", "shortness of breath"),
+    (r"心搏過速|心跳過快|心跳过快|tachycardia", "tachycardia"),
+    (r"心搏過緩|心跳過慢|心跳过慢|bradycardia", "bradycardia"),
+    (r"血壓|血压|高血壓|高血压", "blood pressure hypertension"),
+    (r"糖尿病|血糖", "diabetes blood glucose"),
+    (r"膽固醇|胆固醇|血脂", "cholesterol blood lipids"),
+    (r"中風|中风", "stroke"),
+]
+
 # No longer using hardcoded dictionary. We use LLM for medical translation.
 from langchain_core.messages import SystemMessage, HumanMessage
 import sys
@@ -51,6 +67,16 @@ def _translate_to_en(query: str) -> str:
     # Quick check: if the query is already pure English, just return it
     if all(ord(c) < 128 for c in query):
         return query
+
+    mapped_terms = [
+        english
+        for pattern, english in MEDICAL_TERM_MAP
+        if re.search(pattern, query, re.IGNORECASE)
+    ]
+    if mapped_terms:
+        mapped = " ".join(dict.fromkeys(mapped_terms))
+        logger.info(f"[MedlinePlus] Static medical term mapping: {query!r} -> {mapped!r}")
+        return mapped
 
     logger.info(f"[MedlinePlus] Translating query using LLM: {query!r}")
     
@@ -227,4 +253,3 @@ def _xml_escape(text: str) -> str:
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace('"', "&quot;"))
-

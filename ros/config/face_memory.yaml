@@ -1,0 +1,6 @@
+# ROS face memory parameters.
+# Loaded under /face_identity_memory by scripts/run.sh.
+
+face_topic: /qt_nuitrack_app/faces
+max_people: 4
+debug_log_interval: 2.0

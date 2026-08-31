@@ -1,0 +1,229 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Health Education Robot Flowchart</title>
+  <desc id="desc">A clean four-row flowchart for a health education robot system.</desc>
+  <defs>
+    <pattern id="gridSmall" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#e8eef1" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-16%" y="-16%" width="132%" height="132%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#142c34" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrowTeal" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#087d7a"/>
+    </marker>
+    <style>
+      .section {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        fill: #70838c;
+      }
+      .label {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 22px;
+        font-weight: 850;
+        fill: #172930;
+      }
+      .labelSmall {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        fill: #637780;
+      }
+      .labelWhite {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 26px;
+        font-weight: 850;
+        fill: #ffffff;
+      }
+      .labelWhiteSmall {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 15px;
+        font-weight: 750;
+        fill: #b9ebe7;
+      }
+      .card {
+        fill: #ffffff;
+        stroke: #d6e5e9;
+        stroke-width: 2.5;
+        filter: url(#shadow);
+      }
+      .router {
+        fill: #0d3033;
+        stroke: #087d7a;
+        stroke-width: 3.5;
+        filter: url(#shadow);
+      }
+      .line {
+        fill: none;
+        stroke: #087d7a;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        marker-end: url(#arrowTeal);
+      }
+      .trunk {
+        fill: none;
+        stroke: #087d7a;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .iconDark {
+        fill: none;
+        stroke: #172930;
+        stroke-width: 6.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .iconThin {
+        fill: none;
+        stroke: #172930;
+        stroke-width: 4.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .note {
+        font-family: Inter, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 750;
+        fill: #5e737b;
+      }
+      .pill {
+        fill: #e8f7f5;
+        stroke: #b5dfdc;
+        stroke-width: 1.6;
+      }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="#f9fcfd"/>
+  <rect width="1600" height="900" fill="url(#gridSmall)" opacity="0.72"/>
+
+  <!-- Column headings -->
+  <text class="section" x="170" y="112" text-anchor="middle">INPUT</text>
+  <text class="section" x="450" y="112" text-anchor="middle">DECISION</text>
+  <text class="section" x="830" y="112" text-anchor="middle">AI / HEALTH MODULES</text>
+  <text class="section" x="1265" y="112" text-anchor="middle">OUTPUTS</text>
+
+  <!-- Voice input -->
+  <rect class="card" x="75" y="355" width="190" height="170" rx="26"/>
+  <g transform="translate(128 379) scale(0.88)">
+    <rect x="29" y="8" width="38" height="80" rx="19" class="iconDark"/>
+    <path d="M10 61C10 96 32 113 48 113C64 113 86 96 86 61" class="iconDark"/>
+    <path d="M48 113V145M28 145H68" class="iconDark"/>
+    <path d="M-4 55V74M100 55V74" class="iconThin"/>
+    <path d="M12 31C2 42 2 82 12 94M84 31C94 42 94 82 84 94" class="iconThin" opacity="0.38"/>
+  </g>
+  <text class="label" x="170" y="574" text-anchor="middle">Voice Input</text>
+  <text class="labelSmall" x="170" y="602" text-anchor="middle">STT transcript</text>
+
+  <!-- AI router -->
+  <rect class="router" x="340" y="340" width="220" height="200" rx="30"/>
+  <g transform="translate(392 378)" opacity="0.22">
+    <path d="M16 25H78C112 25 112 80 78 80H16" fill="none" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 80L40 56M16 80L40 104" fill="none" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M98 24H124V61M98 80H124V117M98 136H124V117" fill="none" stroke="#c7f2ef" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text class="labelWhite" x="450" y="432" text-anchor="middle">AI Router</text>
+  <text class="labelWhiteSmall" x="450" y="463" text-anchor="middle">intent + safety gate</text>
+
+  <!-- Input arrow -->
+  <path class="line" d="M265 440H326"/>
+
+  <!-- Router trunk -->
+  <path class="trunk" d="M560 440H635"/>
+  <path class="trunk" d="M635 205V675"/>
+  <path class="line" d="M635 205H700"/>
+  <path class="line" d="M635 355H700"/>
+  <path class="line" d="M635 505H700"/>
+  <path class="line" d="M635 655H700"/>
+
+  <!-- Row 1: ECG -->
+  <rect class="card" x="715" y="150" width="330" height="110" rx="25"/>
+  <g transform="translate(752 160) scale(0.86)">
+    <path d="M10 35C15 13 43 10 56 28C69 10 97 13 102 35C107 58 80 78 56 96C32 78 5 58 10 35Z" fill="#fff4f4" stroke="#ef5555" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M28 57H46L54 39L67 74L76 57H94" fill="none" stroke="#ef5555" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text class="label" x="875" y="195">ECG Screening</text>
+  <text class="labelSmall" x="875" y="224">60s analysis</text>
+
+  <rect class="card" x="1115" y="150" width="340" height="110" rx="25"/>
+  <g transform="translate(1153 172) scale(0.68)">
+    <rect x="0" y="0" width="138" height="66" rx="12" fill="#223036" stroke="#172930" stroke-width="5.5"/>
+    <path d="M24 35H51L61 17L76 54L88 35H115" fill="none" stroke="#4fd7c8" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M55 66L47 90H91L83 66Z" fill="#172930"/>
+    <rect x="38" y="90" width="62" height="8" rx="4" fill="#172930"/>
+  </g>
+  <text class="label" x="1360" y="196" text-anchor="middle">Face Display</text>
+  <text class="labelSmall" x="1360" y="224" text-anchor="middle">ECG dashboard</text>
+  <path class="line" d="M1045 205H1101"/>
+
+  <!-- Row 2: RAG -->
+  <rect class="card" x="715" y="300" width="330" height="110" rx="25"/>
+  <g transform="translate(768 315) scale(0.86)">
+    <ellipse cx="43" cy="18" rx="39" ry="13" fill="#edf5ff" stroke="#3a7bd5" stroke-width="5"/>
+    <path d="M4 18V70C4 80 22 88 43 88C64 88 82 80 82 70V18" fill="none" stroke="#3a7bd5" stroke-width="5"/>
+    <path d="M4 45C4 55 22 63 43 63C64 63 82 55 82 45" fill="none" stroke="#3a7bd5" stroke-width="5"/>
+  </g>
+  <text class="label" x="875" y="345">Medical RAG</text>
+  <text class="labelSmall" x="875" y="374">trusted evidence</text>
+
+  <rect class="card" x="1115" y="300" width="340" height="110" rx="25"/>
+  <g transform="translate(1156 317) scale(0.66)">
+    <path d="M12 7H125C139 7 150 18 150 32V58C150 72 139 83 125 83H82L45 108V83H12C-2 83 -13 72 -13 58V32C-13 18 -2 7 12 7Z" fill="#f5f8fb" stroke="#3f5360" stroke-width="5.5" stroke-linejoin="round"/>
+    <circle cx="38" cy="45" r="7" fill="#3f5360"/>
+    <circle cx="69" cy="45" r="7" fill="#3f5360"/>
+    <circle cx="100" cy="45" r="7" fill="#3f5360"/>
+  </g>
+  <text class="label" x="1360" y="346" text-anchor="middle">Safe Answer</text>
+  <text class="labelSmall" x="1360" y="374" text-anchor="middle">non-diagnostic</text>
+  <path class="line" d="M1045 355H1101"/>
+
+  <!-- Row 3: Agent -->
+  <rect class="card" x="715" y="450" width="330" height="110" rx="25"/>
+  <g transform="translate(758 462) scale(0.86)">
+    <path d="M54 18V86" fill="none" stroke="#7b5fd1" stroke-width="5" stroke-linecap="round"/>
+    <path d="M54 25C43 9 21 11 17 31C2 35 -1 57 13 67C13 84 34 90 45 78C50 88 54 86 54 78Z" fill="#f4efff" stroke="#7b5fd1" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M54 25C65 9 87 11 91 31C106 35 109 57 95 67C95 84 74 90 63 78C58 88 54 86 54 78Z" fill="#f4efff" stroke="#7b5fd1" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M29 35C39 35 44 42 44 51M23 58C34 56 41 61 43 71M79 35C69 35 64 42 64 51M85 58C74 56 67 61 65 71" fill="none" stroke="#7b5fd1" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text class="label" x="875" y="495">Dialogue Agent</text>
+  <text class="labelSmall" x="875" y="524">low-risk reply</text>
+
+  <rect class="card" x="1115" y="450" width="340" height="110" rx="25"/>
+  <g transform="translate(1153 465) scale(0.68)">
+    <path d="M14 28V70M126 28V70" class="iconDark"/>
+    <rect x="31" y="13" width="78" height="70" rx="20" fill="#eefbf9" stroke="#087d7a" stroke-width="5.5"/>
+    <circle cx="55" cy="49" r="6.5" fill="#087d7a"/>
+    <circle cx="86" cy="49" r="6.5" fill="#087d7a"/>
+    <path d="M61 67C67 72 76 72 82 67" fill="none" stroke="#087d7a" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M55 83L44 106H96L85 83Z" fill="#172930"/>
+  </g>
+  <text class="label" x="1360" y="496" text-anchor="middle">Robot Behavior</text>
+  <text class="labelSmall" x="1360" y="524" text-anchor="middle">speech + gestures</text>
+  <path class="line" d="M1045 505H1101"/>
+
+  <!-- Row 4: Control -->
+  <rect class="card" x="715" y="600" width="330" height="110" rx="25"/>
+  <g transform="translate(770 615) scale(0.88)">
+    <circle cx="43" cy="43" r="21" fill="#fff7e8" stroke="#f2a541" stroke-width="5"/>
+    <path d="M43 5V20M43 66V81M5 43H20M66 43H81M16 16L27 27M59 59L70 70M70 16L59 27M27 59L16 70" fill="none" stroke="#f2a541" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="43" cy="43" r="7" fill="#f2a541"/>
+  </g>
+  <text class="label" x="875" y="645">System Control</text>
+  <text class="labelSmall" x="875" y="674">volume, language</text>
+
+  <rect class="card" x="1115" y="600" width="340" height="110" rx="25"/>
+  <g transform="translate(1156 620) scale(0.68)">
+    <rect x="0" y="0" width="138" height="70" rx="15" fill="#fff7ea" stroke="#f2a541" stroke-width="5.5"/>
+    <path d="M32 35H86" fill="none" stroke="#f2a541" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M68 18L88 35L68 52" fill="none" stroke="#f2a541" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="106" cy="35" r="8" fill="#f2a541"/>
+  </g>
+  <text class="label" x="1360" y="646" text-anchor="middle">ECG Trigger</text>
+  <text class="labelSmall" x="1360" y="674" text-anchor="middle">start / stop</text>
+  <path class="line" d="M1045 655H1101"/>
+
+</svg>

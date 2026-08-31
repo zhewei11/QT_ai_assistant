@@ -1,0 +1,4 @@
+# Optional YBC beat-level arrhythmia model.
+# Install this only when ECG_YBC_MODEL_ENABLED=true.
+--index-url https://download.pytorch.org/whl/cpu
+torch>=2.0

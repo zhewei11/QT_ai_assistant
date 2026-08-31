@@ -1,0 +1,51 @@
+# Riva ASR + VAD tuning parameters.
+# Loaded under /riva_speech_recongnition_node by scripts/run.sh.
+
+# ROS audio topic carrying 16 kHz mono signed 16-bit PCM audio_common_msgs/AudioData.
+audio_topic: /qt_respeaker_app/channel0
+
+# Riva ASR language at node startup.
+# zh-CN is used for Mandarin speech recognition; QTrobot TTS Mandarin is configured separately as zh-MA.
+default_language: zh-CN
+
+# Maximum seconds to wait for a Riva final result after speech starts.
+detection_timeout: 5
+
+# Riva recognition options.
+speaker_diarization: false
+
+# Silero VAD sensitivity.
+# Higher value = harder to trigger, fewer false positives, may miss quiet speech.
+# Lower value = easier to trigger, may catch other people or noise.
+vad_confidence_threshold: 0.85
+
+# Number of consecutive voiced chunks required before starting ASR.
+# Higher value = more stable but may eat the beginning of a sentence.
+# Lower value = faster start but easier false trigger.
+consecutive_voice_chunks: 4
+
+# Audio kept before the VAD trigger.
+# Increase this if the first word is often missing.
+pre_roll_seconds: 1.8
+
+# Minimum RMS level before VAD is allowed to trigger.
+# Increase this in noisy/open spaces; decrease if the user speaks softly.
+min_voice_rms: 320
+
+# Initial room-noise calibration.
+# The node samples ambient audio first, then raises min_voice_rms if needed.
+noise_calibration_seconds: 2.0
+noise_rms_multiplier: 3.0
+
+# Seconds to ignore microphone audio after TTS finishes.
+# Increase if the robot still hears its own voice; decrease if it misses the next user turn.
+resume_cooldown: 0.4
+
+# Maximum seconds to wait for VAD speech before one recognition loop returns empty.
+voice_wait_timeout: 8.0
+
+# Transcript filters.
+# Short greeting/control words such as "你好", "hi", "yes", and "no" are allowlisted in code.
+min_transcript_chars: 3
+min_transcript_words: 1
+min_transcript_confidence: 0.0
