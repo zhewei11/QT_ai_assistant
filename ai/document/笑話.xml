@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knowledge_base>
+  <metadata>
+    <source>QTrobot 笑話資料庫</source>
+    <url>local://jokes</url>
+  </metadata>
+
+  <article id="joke-001">
+    <title>水餃笑話</title>
+    <category>諧音詪笑話</category>
+    <keywords>水餃,當鋪</keywords>
+    <section name="笑話內容">請問水餃從哪裡來? 答案是從當舖來，因為是dumpling</section>
+  </article>
+
+  <article id="joke-002">
+    <title>阿立博士</title>
+    <category>阿立博士</category>
+    <keywords>阿立,博士</keywords>
+    <section name="笑話內容">阿立博士失憶了會變成甚麼?  阿立洗向</section>
+  </article>
+
+  <article id="joke-003">
+    <title>雞笑話</title>
+    <category>對講機,翻譯機</category>
+    <keywords>雞,對講機,翻譯雞</keywords>
+    <section name="笑話內容">有一天有兩隻雞，一隻咕咕，另一隻咕咕這就是對講機。過了一天，一隻雞說你好，另一隻說哈囉，這就是翻譯機。</section>
+  </article>
+
+  <article id="joke-004">
+    <title>番茄過馬路</title>
+    <category>冷笑話</category>
+    <keywords>番茄,過馬路,蔬菜,冷笑話</keywords>
+    <section name="笑話內容">大番茄和小番茄一起過馬路，小番茄走得太慢，大番茄回頭說：「快一點，番茄醬！」</section>
+  </article>
+
+  <article id="joke-005">
+    <title>企鵝聊天</title>
+    <category>動物笑話</category>
+    <keywords>企鵝,聊天,冷,動物</keywords>
+    <section name="笑話內容">兩隻企鵝聊天，一隻問：「你今天怎麼這麼安靜？」另一隻回答：「因為這裡的話題太冷了。」</section>
+  </article>
+
+  <article id="joke-006">
+    <title>程式設計師買東西</title>
+    <category>程式笑話</category>
+    <keywords>程式設計師,雞蛋,條件判斷,購物</keywords>
+    <section name="笑話內容">太太對程式設計師說：「去買一瓶牛奶，如果有雞蛋，就買十顆。」結果他帶回十瓶牛奶，因為店裡有雞蛋。</section>
+  </article>
+
+  <article id="joke-007">
+    <title>au,滅火器</title>
+    <category>諧音笑話</category>
+    <keywords>滅火器</keywords>
+    <section name="笑話內容">滅火器有分ABC三類，A類是普通火災，B類是油類火災，C類是對不起。</section>
+  </article>
+
+  <article id="joke-008">
+    <title>猴子笑話</title>
+    <category>諧音笑話</category>
+    <keywords>猴子,喝醉</keywords>
+    <section name="笑話內容">猴子如果喝醉會變成甚麼，會變成monkey。</section>
+  </article>
+
+  <article id="joke-009">
+    <title>名偵探柯南</title>
+    <category>反義笑話</category>
+    <keywords>名偵探</keywords>
+    <section name="笑話內容">積德行善的反義祠是甚麼?答案是柯南行兇。</section>
+  </article>
+</knowledge_base>

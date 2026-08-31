@@ -46,6 +46,14 @@ FACE_CAMERA_STREAM_HOST="${FACE_CAMERA_STREAM_HOST:-}"
 AI_TERMINAL_DEBUG="${AI_TERMINAL_DEBUG:-normal}"
 AI_LOG_LEVEL="${AI_LOG_LEVEL:-WARNING}"
 AI_LIBRARY_LOG_LEVEL="${AI_LIBRARY_LOG_LEVEL:-WARNING}"
+
+# External USB microphone (Jabra Speak 710) configuration.
+USB_AUDIO_ENABLED="${USB_AUDIO_ENABLED:-true}"
+USB_AUDIO_DEVICE="${USB_AUDIO_DEVICE:-plughw:CARD=J710,DEV=0}"
+USB_AUDIO_TOPIC="${USB_AUDIO_TOPIC:-/qt_ai_assistant/external_mic_audio}"
+USB_AUDIO_SAMPLE_RATE="${USB_AUDIO_SAMPLE_RATE:-16000}"
+USB_AUDIO_CHANNELS="${USB_AUDIO_CHANNELS:-1}"
+USB_AUDIO_CHUNK_SAMPLES="${USB_AUDIO_CHUNK_SAMPLES:-512}"
 if [[ "$FACE_MEMORY_FILE" != /* ]]; then
     FACE_MEMORY_FILE="$WORKSPACE_DIR/$FACE_MEMORY_FILE"
 fi
@@ -72,6 +80,7 @@ load_ros_params() {
 RIVA_PID=""
 DISPATCHER_PID=""
 FACE_MEMORY_PID=""
+USB_AUDIO_PID=""
 AI_PID=""
 CLEANING_UP=false
 
@@ -162,16 +171,18 @@ cleanup() {
     kill_pid_tree "$RIVA_PID"
     kill_pid_tree "$DISPATCHER_PID"
     kill_pid_tree "$FACE_MEMORY_PID"
+    kill_pid_tree "$USB_AUDIO_PID"
     kill_project_processes
     sleep 1
     force_kill_pid_tree "$AI_PID"
     force_kill_pid_tree "$RIVA_PID"
     force_kill_pid_tree "$DISPATCHER_PID"
     force_kill_pid_tree "$FACE_MEMORY_PID"
+    force_kill_pid_tree "$USB_AUDIO_PID"
     force_kill_project_processes
     kill_port_listeners
 
-    wait "$RIVA_PID" "$DISPATCHER_PID" "$FACE_MEMORY_PID" "$AI_PID" 2>/dev/null || true
+    wait "$RIVA_PID" "$DISPATCHER_PID" "$FACE_MEMORY_PID" "$USB_AUDIO_PID" "$AI_PID" 2>/dev/null || true
     echo "[Shutdown] All QT AI Assistant processes stopped."
     exit 130
 }
@@ -206,21 +217,27 @@ echo "  FACE_CAMERA_STREAM_HOST=${FACE_CAMERA_STREAM_HOST:-auto}"
 echo "  AI_TERMINAL_DEBUG=$AI_TERMINAL_DEBUG"
 echo "  AI_LOG_LEVEL=$AI_LOG_LEVEL"
 echo "  AI_LIBRARY_LOG_LEVEL=$AI_LIBRARY_LOG_LEVEL"
+echo "  USB_AUDIO_ENABLED=$USB_AUDIO_ENABLED"
+echo "  USB_AUDIO_DEVICE=$USB_AUDIO_DEVICE"
+echo "  USB_AUDIO_TOPIC=$USB_AUDIO_TOPIC"
+echo "  USB_AUDIO_SAMPLE_RATE=$USB_AUDIO_SAMPLE_RATE"
+echo "  USB_AUDIO_CHANNELS=$USB_AUDIO_CHANNELS"
+echo "  USB_AUDIO_CHUNK_SAMPLES=$USB_AUDIO_CHUNK_SAMPLES"
 echo "========================================="
 
 # 0. Prepare ECG integration without blocking startup.
 if [ "$ECG_ENABLED" = "true" ]; then
-    echo "[0/6] ECG integration enabled; startup measurement is disabled by default."
+    echo "[0/7] ECG integration enabled; startup measurement is disabled by default."
     if [ "$ECG_OPEN_DASHBOARD_ON_START" = "true" ]; then
-        echo "[0/6] Opening ECG dashboard at startup..."
+        echo "[0/7] Opening ECG dashboard at startup..."
         bash "$WORKSPACE_DIR/scripts/open_ecg_kiosk.sh" || \
             echo "WARNING: Unable to start the ECG kiosk on the face Raspberry Pi."
     else
-        echo "[0/6] ECG dashboard will open only when showECG/measureECG is triggered."
+        echo "[0/7] ECG dashboard will open only when showECG/measureECG is triggered."
     fi
 
     if [ "$ECG_MEASURE_ON_START" = "true" ]; then
-        echo "[0/6] ECG_MEASURE_ON_START=true, running initial ECG measurement..."
+        echo "[0/7] ECG_MEASURE_ON_START=true, running initial ECG measurement..."
         ECG_PYTHON="${ECG_PYTHON:-$WORKSPACE_DIR/ecg/.venv/bin/python}"
         if [ ! -x "$ECG_PYTHON" ]; then
             ECG_PYTHON="python3"
@@ -235,14 +252,14 @@ if [ "$ECG_ENABLED" = "true" ]; then
             fi
         fi
     else
-        echo "[0/6] ECG measurement is waiting for a voice command."
+        echo "[0/7] ECG measurement is waiting for a voice command."
     fi
 else
-    echo "[0/6] ECG integration disabled."
+    echo "[0/7] ECG integration disabled."
 fi
 
 # 0. boot Riva Core Server in background
-echo "[1/6] Booting Riva Core Server in background..."
+echo "[1/7] Booting Riva Core Server in background..."
 echo "    -> cd ~/robot/riva_quickstart_arm64_v2.14.0 && bash ./riva_start.sh ./config.sh -s"
 (cd ~/robot/riva_quickstart_arm64_v2.14.0 && bash ./riva_start.sh ./config.sh -s) &
 
@@ -262,12 +279,17 @@ echo "Riva Server is UP and listening! Proceeding with ROS nodes..."
 echo "Loading ROS parameter files..."
 load_ros_params "/ros_behavior_dispatcher" "$WORKSPACE_DIR/ros/config/dispatcher.yaml"
 load_ros_params "/riva_speech_recongnition_node" "$WORKSPACE_DIR/ros/config/riva_speech_recognition.yaml"
+if [ "$USB_AUDIO_ENABLED" = "true" ] && command -v rosparam >/dev/null 2>&1; then
+    # Keep the ASR subscriber aligned with the USB publisher even if the YAML
+    # file was not updated or an environment-specific topic is used.
+    rosparam set /riva_speech_recongnition_node/audio_topic "$USB_AUDIO_TOPIC"
+fi
 if [ "$FACE_MEMORY_ENABLED" = "true" ]; then
     load_ros_params "/face_identity_memory" "$WORKSPACE_DIR/ros/config/face_memory.yaml"
 fi
 
 # 1. active ros virtual environment and run ros_behavior_dispatcher.py (Binds to 5556)
-echo "[2/6] active ros virtual environment and run ros_behavior_dispatcher.py..."
+echo "[2/7] active ros virtual environment and run ros_behavior_dispatcher.py..."
 cd "$WORKSPACE_DIR/ros"
 # source /opt/ros/noetic/setup.bash
 source .venv/bin/activate
@@ -289,7 +311,7 @@ done
 echo "Dispatcher (5556) is UP and listening!"
 
 if [ "$FACE_MEMORY_ENABLED" = "true" ]; then
-    echo "[3/6] active ros virtual environment and run face_identity_memory.py..."
+    echo "[3/7] active ros virtual environment and run face_identity_memory.py..."
     echo "    -> subscribing to $FACE_MEMORY_TOPIC"
     echo "    -> writing slots to $FACE_MEMORY_FILE"
     echo "    -> max face slots: $FACE_MEMORY_MAX_PEOPLE"
@@ -299,19 +321,67 @@ if [ "$FACE_MEMORY_ENABLED" = "true" ]; then
     python3 src/face_identity_memory.py &
     FACE_MEMORY_PID=$!
 else
-    echo "[3/6] Face memory disabled."
+    echo "[3/7] Face memory disabled."
     FACE_MEMORY_PID=""
 fi
 
-# 2. active ros virtual environment and run riva_speech_recongnition.py
-echo "[4/6] active ros virtual environment and run riva_speech_recongnition.py..."
+# Start the external Jabra microphone publisher before Riva ASR subscribes.
+if [ "$USB_AUDIO_ENABLED" = "true" ]; then
+    echo "[4/7] starting Jabra Speak 710 ROS audio publisher..."
+    echo "    -> device: $USB_AUDIO_DEVICE"
+    echo "    -> topic:  $USB_AUDIO_TOPIC"
+
+    if ! command -v arecord >/dev/null 2>&1; then
+        echo "ERROR: arecord is not installed; cannot start the external microphone."
+        exit 1
+    fi
+
+    cd "$WORKSPACE_DIR/ros"
+    source .venv/bin/activate
+    python3 src/usb_audio_publisher.py \
+        _device:="$USB_AUDIO_DEVICE" \
+        _audio_topic:="$USB_AUDIO_TOPIC" \
+        _sample_rate:="$USB_AUDIO_SAMPLE_RATE" \
+        _channels:="$USB_AUDIO_CHANNELS" \
+        _chunk_samples:="$USB_AUDIO_CHUNK_SAMPLES" &
+    USB_AUDIO_PID=$!
+
+    echo "Polling $USB_AUDIO_TOPIC to ensure the Jabra publisher is available..."
+    TIMEOUT=10
+    COUNT=0
+    while true; do
+        if ! kill -0 "$USB_AUDIO_PID" 2>/dev/null; then
+            echo "ERROR: Jabra audio publisher exited during startup."
+            echo "Check that no other process is using $USB_AUDIO_DEVICE."
+            exit 1
+        fi
+
+        if rostopic info "$USB_AUDIO_TOPIC" 2>/dev/null | grep -q "/usb_audio_publisher"; then
+            break
+        fi
+
+        sleep 1
+        COUNT=$((COUNT+1))
+        if [ "$COUNT" -ge "$TIMEOUT" ]; then
+            echo "ERROR: Jabra audio topic $USB_AUDIO_TOPIC did not appear within $TIMEOUT seconds."
+            exit 1
+        fi
+    done
+    echo "Jabra audio publisher is UP!"
+else
+    echo "[4/7] External USB microphone disabled; using the audio topic from YAML."
+    USB_AUDIO_PID=""
+fi
+
+# Run Riva speech recognition after its audio publisher is ready.
+echo "[5/7] active ros virtual environment and run riva_speech_recongnition.py..."
 cd "$WORKSPACE_DIR/ros"
 source .venv/bin/activate
 python3 src/riva_speech_recongnition.py &
 RIVA_PID=$!
 
 # 3. active ai virtual environment and run ai_assistant_core.py (Binds to 5555, connects to 5556)
-echo "[5/6] active ai virtual environment and run ai_assistant_core.py..."
+echo "[6/7] active ai virtual environment and run ai_assistant_core.py..."
 cd "$WORKSPACE_DIR/ai"
 source .venv/bin/activate
 python3 src/ai_assistant_core.py &
@@ -324,14 +394,14 @@ COUNT=0
 while ! bash -c 'echo > /dev/tcp/localhost/5555' 2>/dev/null; do
     if ! kill -0 $AI_PID 2>/dev/null; then
         echo "ERROR: AI Brain crashed during startup! Aborting."
-        kill $DISPATCHER_PID $FACE_MEMORY_PID $RIVA_PID 2>/dev/null
+        kill $DISPATCHER_PID $FACE_MEMORY_PID $USB_AUDIO_PID $RIVA_PID 2>/dev/null
         exit 1
     fi
     sleep 1
     COUNT=$((COUNT+1))
     if [ $COUNT -ge $TIMEOUT ]; then
         echo "ERROR: AI Brain failed to bind on port 5555 within $TIMEOUT seconds! Aborting."
-        kill $DISPATCHER_PID $FACE_MEMORY_PID $RIVA_PID $AI_PID 2>/dev/null
+        kill $DISPATCHER_PID $FACE_MEMORY_PID $USB_AUDIO_PID $RIVA_PID $AI_PID 2>/dev/null
         exit 1
     fi
 done

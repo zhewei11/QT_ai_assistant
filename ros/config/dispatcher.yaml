@@ -4,16 +4,16 @@
 # Default app-level language when the dispatcher starts.
 # en-US maps to QTrobot TTS en-US and Riva ASR en-US.
 # zh-TW maps to QTrobot TTS zh-MA and Riva ASR zh-CN.
-default_language: zh-TW
+default_language: en-US
 
 # QTrobot TTS voice parameters.
 # 100 is the original speed. 115-125 is usually clearer while still faster.
 default_tts_pitch: 100
-default_tts_speed: 118
+default_tts_speed: 100
 
 # QTrobot speaker volume at dispatcher startup, app-level 0-100.
 # This is mapped to the robot setting service's internal volume range.
-default_volume_level: 100
+default_volume_level: 60
 
 # Voice command "pause microphone/listening" duration when no explicit seconds are provided.
 user_mic_pause_default_seconds: 10.0
@@ -30,3 +30,19 @@ mic_resume_delay: 0.8
 # Wait a little after publishing mic resume before printing "ready" in the terminal.
 # This should be equal to or slightly longer than ASR resume_cooldown.
 post_tts_ready_delay: 0.25
+
+# Random idle behavior. The timer resets as soon as speech is recognized and
+# again after every robot response or control command.
+idle_enabled: true
+idle_min_interval: 10.0
+idle_max_interval: 15.0
+idle_gesture_speed: 0.8
+idle_expression: QT/showing_smile
+idle_gestures:
+  - QT/neutral
+  - QT/bored
+  - QT/stretching
+  - QT/yawn
+  - QT/hi
+  - QT/monkey
+  - QT/clapping

@@ -498,6 +498,9 @@ if __name__ == "__main__":
     zmq_socket = zmq_context.socket(zmq.PUSH)
     zmq_socket.connect("tcp://localhost:5555")
     rospy.loginfo("ZMQ PUSH socket connected to tcp://localhost:5555")
+    user_activity_pub = rospy.Publisher(
+        '/qt_ai_assistant/user_activity', Bool, queue_size=10
+    )
 
     def on_event(event):
         rospy.logdebug(f"ASR Event: {event}")
@@ -518,6 +521,8 @@ if __name__ == "__main__":
             text, lang = asr.recognize_once()
             if text:
                 rospy.loginfo(f"Recognized ({lang}): {text}")
+                # Reset the idle behavior immediately, before the AI finishes thinking.
+                user_activity_pub.publish(Bool(data=True))
                 # Pack and push to the AI Assistant
                 payload = {
                     "source": "riva_microphone",

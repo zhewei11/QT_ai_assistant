@@ -86,7 +86,7 @@ ECG_MEASUREMENT_COMMAND_PATTERNS = [
     r"(開始|進行|做|作|連測).*(心電圖|心電|ECG|EKG).*(測量|量測|檢測|測試|檢查)?",
     r"(我要|想要|需要|幫我|請).*(測量|量測|檢測|測試|檢查|測|量|做|作|連測).*(心電圖|心電|心跳|心率|ECG|EKG)",
     r"(我要|想要|需要|幫我|請).*(心電圖|心電|ECG|EKG).*(測量|量測|檢測|測試|檢查|測|量|做|作|連測)",
-    r"(measure|record|run|start).*(ECG|heart rate).*(again|measurement|test)?",
+    r"(measure|record|run|start).*(ECG|heart rate|heartbeat|easy).*(again|measurement|test)?",
     r"(repeat|redo).*(ECG|heart rate).*(measurement|test)?",
 ]
 
@@ -170,6 +170,11 @@ COMMAND_NORMALIZATION_TABLE = str.maketrans({
 GREETING_PATTERNS = [
     r"^(你好|嗨|哈囉|早安|午安|晚安)[！!。,.，\s]*$",
     r"^(hello|hi|hey)\b[!.,\s]*$",
+]
+
+JOKE_PATTERNS = [
+    r"笑話|冷笑話|講.*笑|說.*笑|逗我笑|好笑的故事",
+    r"\b(joke|jokes|funny joke|tell me a joke)\b",
 ]
 
 WEATHER_OR_FACT_PATTERNS = [
@@ -758,6 +763,20 @@ def router_node(state: AgentState):
             "language": state.get("language", "zh-TW")
         }, "router", node_started_at, router_method="keyword:greeting")
 
+    if _matches_any(user_input, JOKE_PATTERNS):
+        logger.info("[Router] route: rag_search (joke keyword match)")
+        return _with_latency(state, {
+            "route_decision": "rag_search",
+            "tool_raw_xml": "",
+            "rag_evidence_status": "",
+            "rag_max_relevance": 0.0,
+            "rag_source_count": 0,
+            "medical_risk_level": "",
+            "refined_context": "",
+            "final_response": "",
+            "language": state.get("language", "zh-TW")
+        }, "router", node_started_at, router_method="keyword:joke")
+
     if _matches_any(_normalize_command_text(user_input), MEDICAL_KEYWORD_PATTERNS):
         risk_level = _classify_medical_risk(user_input)
         route = "medical_personal" if risk_level == "personal" else "medical_education"
@@ -791,7 +810,8 @@ def router_node(state: AgentState):
     sys_prompt = """You are a router that determines the user's intent.
     You can only choose from the following four categories:
     1. 'search': The user is asking for general facts, weather, current events, technology news, or any non-medical global knowledge.
-    2. 'rag_search': The user is asking about health and medical topics. This includes:
+    2. 'rag_search': The user is asking for a joke from the local joke knowledge base, or about health and medical topics. This includes:
+       - Requests to tell a joke, cold joke, funny story, or similar humor request
        - Diseases or conditions (e.g. heart disease, diabetes, arrhythmia, PVC, AFib)
        - Symptoms and their causes (e.g. palpitations, chest pain, dizziness)
        - Medications, treatments, or medical procedures
@@ -1271,8 +1291,9 @@ def summarizer_node(state: AgentState):
     target_lang = state.get("language", "zh-TW")
     ecg_measurement = state.get("ecg_measurement") or {}
     ecg_context = format_ecg_context(ecg_measurement)
+    is_joke_request = _matches_any(user_input, JOKE_PATTERNS)
 
-    if state.get("route_decision") == "rag_search":
+    if state.get("route_decision") == "rag_search" and not is_joke_request:
         cache_key = _answer_cache_key(state)
         cached_answer = _get_answer_cache(cache_key)
         if cached_answer:
@@ -1369,9 +1390,14 @@ def summarizer_node(state: AgentState):
 
     if not raw_xml or "No relevant information" in raw_xml:
         logger.warning("[Summarizer] No context provided to summarizer.")
+        no_context_response = (
+            "笑話資料庫裡暫時找不到合適的笑話。" if is_joke_request and target_lang == "zh-TW"
+            else "I couldn't find a suitable joke in the local joke collection." if is_joke_request
+            else _safe_medical_response(target_lang, risk_level, "none")
+        )
         return _with_latency(
             state,
-            {"refined_context": _safe_medical_response(target_lang, risk_level, "none")},
+            {"refined_context": no_context_response},
             "summarizer",
             node_started_at,
             summarizer_method="no_context_guard",
@@ -1380,7 +1406,17 @@ def summarizer_node(state: AgentState):
     # Determine output language
     lang_name = "TRADITIONAL CHINESE (zh-TW)" if target_lang == "zh-TW" else "ENGLISH"
 
-    prompt = (
+    if is_joke_request:
+        prompt = (
+            f"User request: '{user_input}'\n\n"
+            "Below are entries retrieved from the local joke knowledge base:\n"
+            f"{raw_xml}\n\n"
+            f"Reply in {lang_name}. Select exactly one retrieved joke and tell it naturally. "
+            "Preserve the setup and punchline, keep the response short, do not explain the joke, "
+            "and do not invent a joke that is absent from the retrieved content."
+        )
+    else:
+        prompt = (
         f"User question: '{user_input}'\n\n"
         "Below are the retrieved medical knowledge sources (including Taiwan Society of Cardiology (TSOC) guidelines and MedlinePlus authoritative information):\n"
         f"{raw_xml}\n\n"
@@ -1405,7 +1441,7 @@ def summarizer_node(state: AgentState):
     summarizer_llm_ms = round((time.monotonic() - started_at) * 1000, 1)
     logger.info(f"[Latency] summarizer_llm_ms={summarizer_llm_ms}")
     refined_context = response.content
-    if state.get("route_decision") == "rag_search" and not _verify_medical_answer(refined_context, raw_xml):
+    if state.get("route_decision") == "rag_search" and not is_joke_request and not _verify_medical_answer(refined_context, raw_xml):
         if risk_level == "education":
             logger.warning("[Medical Guard] RAG answer verification failed for low-risk education; using concise education fallback.")
             llm_started_at = time.monotonic()

@@ -16,7 +16,7 @@ from audio_common_msgs.msg import AudioData
 def main():
     rospy.init_node("usb_audio_publisher", anonymous=False)
 
-    device = rospy.get_param("~device", "plughw:1,0")
+    device = rospy.get_param("~device", "plughw:CARD=J710,DEV=0")
     audio_topic = rospy.get_param("~audio_topic", "/qt_ai_assistant/external_mic_audio")
     sample_rate = int(rospy.get_param("~sample_rate", 16000))
     channels = int(rospy.get_param("~channels", 1))
@@ -48,12 +48,19 @@ def main():
         chunk_samples,
     )
 
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        bufsize=0,
-    )
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
+        )
+    except FileNotFoundError:
+        rospy.logfatal("[USB Mic] arecord was not found.")
+        return
+    except OSError as exc:
+        rospy.logfatal("[USB Mic] failed to start arecord: %s", exc)
+        return
 
     def log_stderr():
         while not rospy.is_shutdown() and process.poll() is None:
@@ -63,18 +70,12 @@ def main():
 
     threading.Thread(target=log_stderr, name="usb_audio_stderr", daemon=True).start()
 
-    pending = bytearray()
-
     try:
         while not rospy.is_shutdown() and process.poll() is None:
             data = process.stdout.read(chunk_bytes)
             if not data:
                 break
-            pending.extend(data)
-            while len(pending) >= chunk_bytes:
-                chunk = bytes(pending[:chunk_bytes])
-                del pending[:chunk_bytes]
-                publisher.publish(AudioData(data=chunk))
+            publisher.publish(AudioData(data=data))
     finally:
         if process.poll() is None:
             process.terminate()
@@ -82,6 +83,9 @@ def main():
                 process.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 process.kill()
+        return_code = process.poll()
+        if return_code not in (None, 0) and not rospy.is_shutdown():
+            rospy.logerr("[USB Mic] arecord exited with status %s.", return_code)
         rospy.loginfo("[USB Mic] stopped.")
 
 

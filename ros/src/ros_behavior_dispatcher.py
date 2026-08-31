@@ -10,6 +10,7 @@ import json
 import math
 import os
 import re
+import random
 import subprocess
 import threading
 import time
@@ -191,9 +192,71 @@ class ROSBehaviorDispatcher:
         self.mic_pause_reasons = set()
         self.mic_pause_lock = threading.Lock()
         self.user_mic_pause_timer = None
+        self.idle_enabled = bool(rospy.get_param("~idle_enabled", True))
+        self.idle_min_interval = max(5.0, float(rospy.get_param("~idle_min_interval", 20.0)))
+        self.idle_max_interval = max(
+            self.idle_min_interval,
+            float(rospy.get_param("~idle_max_interval", 60.0)),
+        )
+        self.idle_gestures = list(rospy.get_param(
+            "~idle_gestures",
+            ["QT/neutral", "QT/bored", "QT/stretching", "QT/yawn", "QT/hi"],
+        ))
+        self.idle_expression = str(rospy.get_param("~idle_expression", "QT/showing_smile"))
+        self.idle_gesture_speed = float(rospy.get_param("~idle_gesture_speed", 0.8))
+        self.last_activity_at = time.monotonic()
+        self.next_idle_interval = random.uniform(self.idle_min_interval, self.idle_max_interval)
+        self.output_busy = threading.Event()
+        rospy.Subscriber(
+            '/qt_ai_assistant/user_activity',
+            Bool,
+            self._on_user_activity,
+            queue_size=10,
+        )
         rospy.loginfo(f"ROSBehaviorDispatcher listening on {zmq_port} ... awaiting AI AI_Assistant instructions.")
         self._set_language(self.default_language)
         self._set_volume(self.default_volume_level)
+        if self.idle_enabled and self.idle_gestures:
+            threading.Thread(target=self._idle_loop, name="idle_behavior_worker", daemon=True).start()
+            rospy.loginfo(
+                f"[Idle] enabled interval={self.idle_min_interval:.0f}-{self.idle_max_interval:.0f}s "
+                f"gestures={self.idle_gestures}"
+            )
+
+    def _mark_activity(self):
+        self.last_activity_at = time.monotonic()
+        self.next_idle_interval = random.uniform(self.idle_min_interval, self.idle_max_interval)
+
+    def _on_user_activity(self, message):
+        if message.data:
+            self._mark_activity()
+            rospy.logdebug("[Idle] timer reset by recognized user speech.")
+
+    def _idle_loop(self):
+        while not rospy.is_shutdown():
+            inactive_for = time.monotonic() - self.last_activity_at
+            can_run = (
+                not self.output_busy.is_set()
+                and not self._is_answering_paused()
+                and not self.mic_pause_reasons
+            )
+            if can_run and inactive_for >= self.next_idle_interval:
+                gesture = random.choice(self.idle_gestures)
+                self._mark_activity()
+                rospy.loginfo(f"[Idle] playing gesture={gesture} speed={self.idle_gesture_speed}")
+                if self.idle_expression:
+                    self._run_async_service(
+                        "idleEmotion",
+                        self._call_emotion_show,
+                        self._normalize_emotion_name(self.idle_expression),
+                    )
+                self._run_async_service(
+                    "idleGesture",
+                    self._call_gesture_play,
+                    self._normalize_gesture_name(gesture),
+                    self.idle_gesture_speed,
+                )
+            rospy.sleep(0.25)
 
     def _publish_mic_pause_state(self):
         paused = bool(self.mic_pause_reasons)
@@ -676,31 +739,37 @@ class ROSBehaviorDispatcher:
             "function_args": {"emotion": "QT/happy"} 
         }
         """
+        self._mark_activity()
+        self.output_busy.set()
         rospy.logdebug(f"Instructed to perform: {payload}")
         action = payload.get("action")
 
-        if self._is_stale_request(payload):
-            return
-        
-        if action == "multimodal":
-            self._dispatch_multimodal(payload)
+        try:
+            if self._is_stale_request(payload):
+                return
 
-        elif action == "talk":
-            text = payload.get("text", "")
-            if text:
-                self._talk_without_mic_feedback(text)
-                
-        elif action == "function":
-            func_name = payload.get("function_name")
-            args = payload.get("function_args", {})
-            try:
-                self._dispatch_function(func_name, args)
-            except Exception as e:
-                rospy.logerr(f"Error executing function {func_name}: {e}")
+            if action == "multimodal":
+                self._dispatch_multimodal(payload)
+
+            elif action == "talk":
+                text = payload.get("text", "")
+                if text:
+                    self._talk_without_mic_feedback(text)
+
+            elif action == "function":
+                func_name = payload.get("function_name")
+                args = payload.get("function_args", {})
+                try:
+                    self._dispatch_function(func_name, args)
+                except Exception as e:
+                    rospy.logerr(f"Error executing function {func_name}: {e}")
+        finally:
+            self._mark_activity()
+            self.output_busy.clear()
 
 if __name__ == "__main__":
     rospy.init_node("ros_behavior_dispatcher", anonymous=False)
-    
+
     # Port 5556 acts as the sink where AI behavior instructions drop in
     dispatcher = ROSBehaviorDispatcher(zmq_port="tcp://*:5556")
     try:
